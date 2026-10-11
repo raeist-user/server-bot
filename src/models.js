@@ -154,11 +154,12 @@ const WebJob = mongoose.models.WebJob || mongoose.model('WebJob', (() => {
   const s = new Schema({
     guildId: { type: String, required: true },
     userId: { type: String, required: true }, // the logged-in website user; the bot re-checks they are an Administrator
-    game: { type: String, enum: ['countryguess', 'wordstory', 'wordchain', 'trigger', 'emoji'], required: true },
-    action: { type: String, enum: ['save', 'toggle', 'delete'], required: true },
+    game: { type: String, enum: ['countryguess', 'wordstory', 'wordchain', 'trigger', 'emoji', 'command', 'feed'], required: true },
+    action: { type: String, enum: ['save', 'toggle', 'delete', 'setup', 'publish'], required: true },
     payload: { type: Schema.Types.Mixed, default: {} },
     status: { type: String, enum: ['pending', 'running', 'done', 'error'], default: 'pending' },
     message: { type: String, default: '' },
+    result: { type: Schema.Types.Mixed, default: null }, // extra data for the website, e.g. { channelId } of a channel the bot just created
     createdAt: { type: Date, default: Date.now, expires: 3600 }, // old jobs clean themselves up
   });
   s.index({ status: 1, createdAt: 1 });
@@ -183,6 +184,20 @@ const EmojiConfig = mongoose.models.EmojiConfig || mongoose.model('EmojiConfig',
   defaultPerm: { type: Boolean, default: true }, // true: members with Manage Expressions can use it too
 }));
 
+// Per-command switches (/function and the website). One row per command per server.
+// `enabled` is the server-wide state for commands that have no settings of their own (summary, define, wiki, help, trigger).
+// `channels` are per-channel rules; a rule always beats the server-wide state, so "off everywhere, on in #x" is just one rule.
+const CommandConfig = mongoose.models.CommandConfig || mongoose.model('CommandConfig', (() => {
+  const s = new Schema({
+    guildId: { type: String, required: true },
+    key: { type: String, required: true },
+    enabled: { type: Boolean, default: true },
+    channels: { type: [{ _id: false, channelId: String, enabled: Boolean }], default: [] },
+  });
+  s.index({ guildId: 1, key: 1 }, { unique: true });
+  return s;
+})());
+
 // Beta system: which commands are beta (!config) and which servers have beta access (!betaaccess).
 const FeatureFlag = mongoose.models.FeatureFlag || mongoose.model('FeatureFlag', new Schema({
   name: { type: String, required: true, unique: true },
@@ -193,4 +208,4 @@ const BetaGuild = mongoose.models.BetaGuild || mongoose.model('BetaGuild', new S
   addedAt: { type: Date, default: Date.now },
 }));
 
-module.exports = { EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, AfkConfig, AfkStatus, CountryGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };
+module.exports = { CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, AfkConfig, AfkStatus, CountryGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };

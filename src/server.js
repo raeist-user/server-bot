@@ -10,7 +10,8 @@ const passport = require('passport');
 const { Strategy } = require('passport-discord');
 const mongoose = require('mongoose');
 const path = require('path');
-const { Feed, CountryGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo } = require('./models');
+const { CommandConfig, Feed, QuoteConfig, AfkConfig, CountryGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo } = require('./models');
+const { FEATURES } = require('./registry');
 const { SERVER_ID, DEFAULT_BETA } = require('./botconfig'); // from bot.json
 
 // The OAuth2 redirect must match, character for character, one of the Redirects in
@@ -83,7 +84,7 @@ async function runJob(guildId, userId, game, action, payload) {
     await sleep(700);
     const j = await WebJob.findById(job._id).lean();
     if (j && (j.status === 'done' || j.status === 'error')) {
-      return j.status === 'done' ? { status: 200, data: { ok: true, message: j.message } } : { status: 400, data: { error: j.message } };
+      return j.status === 'done' ? { status: 200, data: { ok: true, message: j.message, ...(j.result || {}) } } : { status: 400, data: { error: j.message } };
     }
   }
   await WebJob.deleteOne({ _id: job._id, status: 'pending' }); // never let it run late, after the user has given up
@@ -117,14 +118,16 @@ async function listGuilds(user) {
   ]);
   const inSet = new Set(here.map((x) => x.guildId));
   return list.filter((g) => inSet.has(g.id)).map((g) => ({
-    id: g.id, name: g.name, icon: iconUrl(g), admin: true, beta: acc.hasBeta(g.id),
-    features: { trigger: { on: acc.can('trigger', g.id), stage: acc.stage('trigger') }, emoji: { on: acc.can('emoji', g.id), stage: acc.stage('emoji') } },
+    id: g.id, name: g.name, icon: iconUrl(g), beta: acc.hasBeta(g.id),
+    // per command: its stage (beta/public) and whether this server may use it right now
+    features: Object.fromEntries(FEATURES.map((f) => [f.key, { stage: acc.stage(f.key), on: acc.can(f.key, g.id) }])),
   }));
 }
 app.get('/api/guilds', authed, wrap(async (req, res) => res.json(await listGuilds(req.user))));
 
-// Refresh button: re-reads the user's servers/permissions from Discord, then re-checks where the bot is.
-app.post('/api/refresh', authed, wrap(async (req, res) => {
+// Refresh button: re-reads the user's servers/permissions from Discord, asks the bot to re-publish the open server's
+// channels and roles, then re-checks where the bot is.
+app.post('/api/refresh', authed, jsonOnly, wrap(async (req, res) => {
   const key = `r:${req.user.id}`;
   if (Date.now() - (recent.get(key) ?? 0) < 3000) return res.status(429).json({ error: 'Slow down a little.' });
   recent.set(key, Date.now());
@@ -138,13 +141,32 @@ app.post('/api/refresh', authed, wrap(async (req, res) => {
   const user = { ...req.user, guilds: (await r.json()).map(slimGuild) };
   req.session.passport.user = user; req.user = user;
   await new Promise((done) => req.session.save(done));
+  const open = String(req.body?.guildId ?? '');
+  if (isAdminOf(user.guilds.find((x) => x.id === open))) { // best effort: never fail the refresh because the bot is slow
+    await Promise.race([runJob(open, user.id, 'command', 'publish', {}), sleep(8000)]).catch(() => {});
+  }
   res.json(await listGuilds(user));
 }));
 
-// ---- feeds (Word of the Day, Daily Fact): managed straight in the shared database, Administrator only ----
+// ---- beta access: which commands are beta, and which servers have beta access (set with !config and !betaaccess) ----
+// Checked fresh on every request, so a server that gets (or loses) beta sees it on its next page load.
+async function loadAccess(guildIds) {
+  const [flags, betas] = await Promise.all([FeatureFlag.find().lean(), BetaGuild.find({ guildId: { $in: guildIds } }, { guildId: 1 }).lean()]);
+  const beta = new Set(betas.map((b) => b.guildId));
+  const stage = (name) => flags.find((f) => f.name === name)?.stage ?? (DEFAULT_BETA.has(name) ? 'beta' : 'public');
+  const hasBeta = (id) => id === SERVER_ID || beta.has(id);
+  return { stage, hasBeta, can: (name, id) => stage(name) === 'public' || hasBeta(id) };
+}
+/** Route guard: the server must be allowed to use this command (beta commands need beta access). */
+const featureGate = (keyOf) => wrap(async (req, res, next) => {
+  const acc = await loadAccess([req.params.id]);
+  return acc.can(keyOf(req), req.params.id) ? next() : res.status(403).json({ error: 'That command is beta and is not available for this server yet.' });
+});
+
+// ---- feeds (Word of the Day, Daily Fact): reads come from the database, changes go through the bot ----
 const FEED_TYPES = new Set(['wotd', 'dailyfact']);
 const FEED_LIMITS = { minMs: 3600000, maxMs: 30 * 864e5 }; // 1 hour .. 30 days
-const FEED_DEFAULTS = { wotd: { emoji: '📖' }, dailyfact: { emoji: '💡' } };
+const FEED_DEFAULTS = { wotd: { emoji: '\u{1F4D6}' }, dailyfact: { emoji: '\u{1F4A1}' } };
 const knownFeed = (req, res, next) => (FEED_TYPES.has(req.params.type) ? next() : res.status(404).json({ error: 'Unknown feed.' }));
 app.get('/api/guilds/:id/feeds', authed, adminOnly, wrap(async (req, res) => {
   const guildId = req.params.id;
@@ -161,54 +183,31 @@ app.get('/api/guilds/:id/feeds', authed, adminOnly, wrap(async (req, res) => {
     limits: FEED_LIMITS, defaults: FEED_DEFAULTS, feeds,
   });
 }));
-// Create or update. Existing feeds accept partial bodies (e.g. only { enabled }); a new feed needs channelId, emoji and intervalMs.
-app.put('/api/guilds/:id/feeds/:type', authed, jsonOnly, adminOnly, knownFeed, wrap(async (req, res) => {
+// Save a feed. { enabled:false } switches it off; otherwise { channelId, roleId, emoji, intervalMs } (a new feed needs a channel).
+app.put('/api/guilds/:id/feeds/:type', authed, jsonOnly, adminOnly, knownFeed, featureGate((req) => req.params.type), wrap(async (req, res) => {
   const { id: guildId, type } = req.params;
   const key = `f:${req.user.id}:${guildId}:${type}`;
   if (Date.now() - (recent.get(key) ?? 0) < 1000) return res.status(429).json({ error: 'Slow down a little.' });
   recent.set(key, Date.now());
-  const info = await GuildInfo.findOne({ guildId }).lean();
-  if (!info) return res.status(404).json({ error: 'not_in_guild' });
   const b = req.body || {};
-  const cur = await Feed.findOne({ guildId, type });
-  const set = {};
-  if (typeof b.enabled === 'boolean') set.enabled = b.enabled;
-  if (b.channelId !== undefined) {
-    if (typeof b.channelId !== 'string' || !info.channels.some((c) => c.id === b.channelId)) return res.status(400).json({ error: 'Pick a channel from the list.' });
-    set.channelId = b.channelId;
-  }
-  if (b.roleId !== undefined) {
-    if (!b.roleId) set.roleId = null;
-    else if (typeof b.roleId === 'string' && info.roles.some((r) => r.id === b.roleId)) set.roleId = b.roleId;
-    else return res.status(400).json({ error: 'Pick a role from the list.' });
-  }
-  if (b.emoji !== undefined) {
-    const e = typeof b.emoji === 'string' ? b.emoji.trim() : '';
-    if (!e || e.length > 64) return res.status(400).json({ error: 'Add an emoji (up to 64 characters).' });
-    set.emoji = e;
-  }
-  if (b.intervalMs !== undefined) {
-    const n = b.intervalMs;
-    if (!(cur && cur.intervalMs === n) && (!Number.isInteger(n) || n < FEED_LIMITS.minMs || n > FEED_LIMITS.maxMs)) return res.status(400).json({ error: 'The interval must be between 1 hour and 30 days.' });
-    set.intervalMs = n;
-  }
-  const now = new Date();
-  if (!cur) {
-    if (set.enabled === false) return res.json({ ok: true, message: 'Nothing to change.' });
-    for (const f of ['channelId', 'emoji', 'intervalMs']) if (set[f] === undefined) return res.status(400).json({ error: `Missing ${f}.` });
-    try {
-      await Feed.create({ guildId, type, channelId: set.channelId, roleId: set.roleId ?? null, emoji: set.emoji, intervalMs: set.intervalMs, nextRunAt: now, enabled: true, failures: 0, createdBy: req.user.id });
-    } catch (e) { if (e.code === 11000) return res.status(409).json({ error: 'That feed already exists. Refresh the page.' }); throw e; }
-    return res.json({ ok: true, message: 'Feed set up.' });
-  }
-  if (set.intervalMs !== undefined && set.intervalMs !== cur.intervalMs) {
-    const base = cur.lastPostAt ? cur.lastPostAt.getTime() : now.getTime();
-    set.nextRunAt = new Date(Math.max(base + set.intervalMs, now.getTime()));
-  }
-  if (set.enabled === true && cur.enabled === false && !set.nextRunAt && cur.nextRunAt < now) set.nextRunAt = now;
-  if (Object.keys(set).length) set.failures = 0; // any edit clears the failure counter
-  await Feed.updateOne({ guildId, type }, { $set: set });
-  res.json({ ok: true, message: 'Saved.' });
+  if (b.enabled === false) { const r = await runJob(guildId, req.user.id, 'feed', 'save', { type, enabled: false }); return res.status(r.status).json(r.data); }
+  const n = b.intervalMs;
+  if (!Number.isInteger(n) || n < FEED_LIMITS.minMs || n > FEED_LIMITS.maxMs) return res.status(400).json({ error: 'The interval must be between 1 hour and 30 days.' });
+  const emoji = typeof b.emoji === 'string' ? b.emoji.trim() : '';
+  if (!emoji || emoji.length > 64) return res.status(400).json({ error: 'Add an emoji (up to 64 characters).' });
+  if (typeof b.channelId !== 'string' || !/^\d{15,25}$/.test(b.channelId)) return res.status(400).json({ error: 'Pick a channel, or use Auto configure.' });
+  const r = await runJob(guildId, req.user.id, 'feed', 'save', {
+    type, enabled: true, channelId: b.channelId, roleId: typeof b.roleId === 'string' && /^\d{15,25}$/.test(b.roleId) ? b.roleId : null, emoji, intervalMs: n,
+  });
+  res.status(r.status).json(r.data);
+}));
+// Auto configure: the bot creates the channel under "Activity" (and the ping role) and posts the first one.
+app.post('/api/guilds/:id/feeds/:type/setup', authed, jsonOnly, adminOnly, knownFeed, featureGate((req) => req.params.type), wrap(async (req, res) => {
+  const key = `f:${req.user.id}:${req.params.id}:${req.params.type}`;
+  if (Date.now() - (recent.get(key) ?? 0) < 1000) return res.status(429).json({ error: 'Slow down a little.' });
+  recent.set(key, Date.now());
+  const r = await runJob(req.params.id, req.user.id, 'feed', 'setup', { type: req.params.type });
+  res.status(r.status).json(r.data);
 }));
 app.delete('/api/guilds/:id/feeds/:type', authed, adminOnly, knownFeed, wrap(async (req, res) => {
   await Feed.deleteOne({ guildId: req.params.id, type: req.params.type });
@@ -235,7 +234,7 @@ app.get('/api/guilds/:id/games', authed, adminOnly, wrap(async (req, res) => {
     games: { countryguess: pick.countryguess(cg) ?? null, wordstory: pick.wordstory(ws) ?? null, wordchain: pick.wordchain(wc) ?? null },
   });
 }));
-app.put('/api/guilds/:id/games/:game', authed, jsonOnly, adminOnly, knownGame, wrap(async (req, res) => {
+app.put('/api/guilds/:id/games/:game', authed, jsonOnly, adminOnly, knownGame, featureGate((req) => req.params.game), wrap(async (req, res) => {
   const key = `${req.user.id}:${req.params.id}:${req.params.game}`;
   if (Date.now() - (recent.get(key) ?? 0) < 3000) return res.status(429).json({ error: 'Slow down a little.' });
   recent.set(key, Date.now());
@@ -250,21 +249,12 @@ app.put('/api/guilds/:id/games/:game', authed, jsonOnly, adminOnly, knownGame, w
   const r = await runJob(req.params.id, req.user.id, req.params.game, 'save', payload);
   res.status(r.status).json(r.data);
 }));
-app.post('/api/guilds/:id/games/:game/enabled', authed, jsonOnly, adminOnly, knownGame, wrap(async (req, res) => {
+app.post('/api/guilds/:id/games/:game/enabled', authed, jsonOnly, adminOnly, knownGame, featureGate((req) => req.params.game), wrap(async (req, res) => {
   if (typeof req.body?.enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be true or false.' });
   const r = await runJob(req.params.id, req.user.id, req.params.game, 'toggle', { enabled: req.body.enabled });
   res.status(r.status).json(r.data);
 }));
 
-// ---- beta access: which commands are beta, and which servers have beta access (set with !config and !betaaccess) ----
-// Checked fresh on every request, so a server that gets (or loses) beta sees it on its next page load.
-async function loadAccess(guildIds) {
-  const [flags, betas] = await Promise.all([FeatureFlag.find().lean(), BetaGuild.find({ guildId: { $in: guildIds } }, { guildId: 1 }).lean()]);
-  const beta = new Set(betas.map((b) => b.guildId));
-  const stage = (name) => flags.find((f) => f.name === name)?.stage ?? (DEFAULT_BETA.has(name) ? 'beta' : 'public');
-  const hasBeta = (id) => id === SERVER_ID || beta.has(id);
-  return { stage, hasBeta, can: (name, id) => stage(name) === 'public' || hasBeta(id) };
-}
 const triggerGate = wrap(async (req, res, next) => {
   const acc = await loadAccess([req.params.id]);
   return acc.can('trigger', req.params.id) ? next() : res.status(403).json({ error: 'Triggers are not available for this server yet.' });
@@ -335,6 +325,69 @@ app.put('/api/guilds/:id/emoji', authed, jsonOnly, adminOnly, emojiGate, wrap(as
   });
   res.status(r.status).json(r.data);
 }));
+
+// ---- General commands: summary, quote, define, wiki, afk, emoji, help, triggers (on/off, per-channel rules, settings) ----
+const GENERAL = FEATURES.filter((f) => f.group === 'general');
+/** Server-wide state of a command: true = on, false = off, null = not set up. Mirrors the bot's own check. */
+async function stateOf(guildId, key, rows) {
+  const flag = (c) => (c ? c.enabled !== false : null);
+  switch (key) {
+    case 'quote': return flag(await QuoteConfig.findOne({ guildId }, { enabled: 1 }).lean());
+    case 'afk': return flag(await AfkConfig.findOne({ guildId }, { enabled: 1 }).lean());
+    case 'emoji': { const c = await EmojiConfig.findOne({ guildId }, { enabled: 1 }).lean(); return c ? c.enabled !== false : true; }
+    default: return rows.get(key)?.enabled !== false;
+  }
+}
+app.get('/api/guilds/:id/general', authed, adminOnly, wrap(async (req, res) => {
+  const guildId = req.params.id;
+  const info = await GuildInfo.findOne({ guildId }).lean();
+  if (!info) return res.status(404).json({ error: 'not_in_guild' });
+  const [cmdRows, quote, afk, emoji, acc] = await Promise.all([
+    CommandConfig.find({ guildId }).lean(), QuoteConfig.findOne({ guildId }).lean(), AfkConfig.findOne({ guildId }).lean(), EmojiConfig.findOne({ guildId }).lean(), loadAccess([guildId]),
+  ]);
+  const rows = new Map(cmdRows.map((r) => [r.key, r]));
+  const items = [];
+  for (const f of GENERAL) {
+    const state = await stateOf(guildId, f.key, rows);
+    items.push({
+      key: f.key, name: f.name, forms: f.forms, desc: f.desc, stage: acc.stage(f.key), locked: !acc.can(f.key, guildId),
+      state, rules: (rows.get(f.key)?.channels ?? []).map((c) => ({ channelId: c.channelId, enabled: c.enabled !== false })),
+    });
+  }
+  res.json({
+    channels: info.channels.map((c) => ({ id: c.id, name: c.name, parent: c.parent || null })),
+    roles: info.roles.map((r) => ({ id: r.id, name: r.name, color: r.color })),
+    items,
+    settings: {
+      quote: quote ? { channelId: quote.channelId, respondType: quote.respondType || 'reaction', deleteAfter: quote.deleteAfter ?? 10 } : null,
+      afk: afk ? { respondType: afk.respondType || 'reaction', reaction: afk.reaction || '\u{1F4F5}', message: afk.message, deleteAfter: afk.deleteAfter ?? 10, rename: afk.rename === true } : null,
+      emoji: { userIds: emoji?.userIds ?? [], roleIds: emoji?.roleIds ?? [], defaultPerm: emoji?.defaultPerm ?? true },
+    },
+  });
+}));
+// One command card. Body: { enabled?, rules?: [{channelId, enabled}], settings?: {...} }. Settings are only applied while it is on.
+app.put('/api/guilds/:id/commands/:key', authed, jsonOnly, adminOnly, (req, res, next) => (GENERAL.some((f) => f.key === req.params.key) ? next() : res.status(404).json({ error: 'Unknown command.' })),
+  featureGate((req) => req.params.key), wrap(async (req, res) => {
+    const { id: guildId, key } = req.params;
+    const rk = `c:${req.user.id}:${guildId}:${key}`;
+    if (Date.now() - (recent.get(rk) ?? 0) < 800) return res.status(429).json({ error: 'Slow down a little.' });
+    recent.set(rk, Date.now());
+    const b = req.body || {};
+    const snow = (v) => typeof v === 'string' && /^\d{15,25}$/.test(v);
+    const rules = Array.isArray(b.rules) ? b.rules.filter((x) => x && snow(x.channelId) && typeof x.enabled === 'boolean').slice(0, 50).map((x) => ({ channelId: x.channelId, enabled: x.enabled })) : undefined;
+    const st = b.settings && typeof b.settings === 'object' ? b.settings : null;
+    const ids = (v) => (Array.isArray(v) ? [...new Set(v.filter(snow))].slice(0, 50) : undefined);
+    const settings = st ? {
+      channelId: snow(st.channelId) ? st.channelId : null,
+      respondType: ['reaction', 'message', 'none'].includes(st.respondType) ? st.respondType : null,
+      respond: typeof st.respond === 'string' ? st.respond.slice(0, 300) : '',
+      deleteAfter: Number.isInteger(st.deleteAfter) ? st.deleteAfter : null,
+      rename: typeof st.rename === 'boolean' ? st.rename : null,
+      userIds: ids(st.userIds), roleIds: ids(st.roleIds), defaultPerm: typeof st.defaultPerm === 'boolean' ? st.defaultPerm : undefined,
+    } : null;
+    const r = await runJob(guildId, req.user.id, 'command', 'save', { key, enabled: typeof b.enabled === 'boolean' ? b.enabled : null, rules, settings });
+    res.status(r.status).json(r.data);
+  }));
 
 app.use('/resource', express.static(path.join(__dirname, '../resource'), { maxAge: '1d' })); // logo: resource/bot.jpg
 app.use(express.static(path.join(__dirname, '../public')));
