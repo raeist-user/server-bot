@@ -15,17 +15,19 @@ button,select,input,textarea{font:inherit;color:inherit}
 button,select,input[type=number],input[type=text],textarea{padding:.38rem .65rem;border-radius:6px;border:1px solid var(--line2);background:var(--field)}
 input[type=text],textarea,select{width:100%}
 textarea{resize:vertical;min-height:0;display:block}
-button{cursor:pointer;white-space:nowrap}button:hover:not(:disabled){border-color:#4b5263}button:disabled{opacity:.45;cursor:default}
+button{cursor:pointer;white-space:nowrap}button:hover:not(:disabled){border-color:#4b5263}button:disabled{opacity:.5;cursor:default}
 .primary{background:var(--pri);border-color:var(--pri);color:#fff}
 .ghost{background:none;border-color:transparent;color:var(--mute);padding:.25rem .5rem}.ghost:hover:not(:disabled){color:var(--txt)}
 .danger:hover:not(:disabled){color:var(--err)}
+.auto{background:#262a33;border-color:#3a4050;color:#b4bbcb}.auto:hover:not(:disabled){background:#2c313c;border-color:#4b5263;color:var(--txt)}
 .notice{background:#2e2a17;color:#cdbf7a;border-bottom:1px solid #433c1d;text-align:center;padding:.35rem 2rem;font-size:.78rem;position:relative}
 .notice button{position:absolute;right:.4rem;top:.1rem;background:none;border:0;color:inherit;font-size:1rem;padding:.1rem .4rem}
-.badge{font-size:.68rem;padding:.08rem .45rem;border-radius:99px;background:var(--line);color:var(--mute);font-weight:600;letter-spacing:.02em}
+.badge{font-size:.68rem;padding:.08rem .45rem;border-radius:99px;background:var(--line);color:var(--mute);font-weight:600;letter-spacing:.02em;flex:none}
 .badge.beta{background:#2c2550;color:#a99bff}
 .loader{display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:4rem 0;color:var(--mute)}
 .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--pri);border-radius:50%;animation:sp .8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+.dots{display:inline-block;width:1.15em;text-align:left}
 
 /* header: invite pill + profile */
 .invite{display:flex;align-items:center;gap:.5rem;padding:.2rem .6rem .2rem .25rem;border:1px solid var(--line2);border-radius:99px;background:var(--panel);color:var(--txt)}
@@ -45,19 +47,23 @@ a.menu-item.danger{color:var(--err)}
 .userbtn .nm{max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .caret{width:14px;height:14px;color:var(--mute);flex:none;transition:transform .15s}[aria-expanded=true]>.caret{transform:rotate(180deg)}
 
-/* server picker */
-.bar{display:flex;gap:.5rem;align-items:center;margin-bottom:.7rem;flex-wrap:wrap}
-.gsel{display:flex;align-items:center;gap:.55rem;width:min(300px,62vw);padding:.3rem .6rem .3rem .35rem;text-align:left}
-.gsel .nm,.menu-item .nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
-.gicon{width:24px;height:24px;border-radius:50%;object-fit:cover;flex:none;background:var(--line)}
-.gicon.ph{display:grid;place-items:center;font-size:.72rem;font-weight:700;color:var(--mute)}
-#guildMenu{min-width:100%;width:max(100%,260px);max-height:60vh;overflow:auto}
-.iconbtn{width:34px;height:34px;padding:0;display:grid;place-items:center}
-.iconbtn svg{width:16px;height:16px}.iconbtn.spinning svg{animation:sp .8s linear infinite}
+/* server picker: the box and the refresh button together span the full width */
+.bar{display:flex;gap:.5rem;align-items:stretch;margin-bottom:.7rem;width:100%}
+.bar .menu-wrap{flex:1}
+.gsel{display:flex;align-items:center;gap:.55rem;width:100%;height:100%;padding:.35rem .7rem .35rem .4rem;text-align:left}
+.gsel .nm,.menu-item .nm{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.gsel .nm{flex:0 1 auto}.gsel .spacer{flex:1}
+.menu-item .nm{flex:1}
+.gicon{width:26px;height:26px;border-radius:50%;object-fit:cover;flex:none;background:var(--line)}
+.gicon.ph{display:grid;place-items:center;font-size:.74rem;font-weight:700;color:var(--mute)}
+#guildMenu{width:100%;max-height:60vh;overflow:auto}
+.iconbtn{width:42px;padding:0;display:grid;place-items:center}
+.iconbtn svg{width:17px;height:17px}.iconbtn.spinning svg{animation:sp .8s linear infinite}
 
-.tabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin-bottom:.8rem;overflow-x:auto}
-.tabs button{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:.5rem .8rem;color:var(--mute);display:flex;gap:.4rem;align-items:center}
+.tabs{display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin-bottom:.8rem;overflow-x:auto;overflow-y:hidden;padding-top:.7rem}
+.tabs button{position:relative;background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:.5rem .8rem;color:var(--mute)}
 .tabs button.sel{color:var(--txt);border-bottom-color:var(--pri)}
+.tabs .badge{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:.56rem;padding:.02rem .38rem;line-height:1.3;pointer-events:none}
 .card{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:.6rem .8rem;margin:0 0 .6rem}
 .head{display:flex;align-items:center;gap:.5rem}.head b{font-size:.95rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.5rem .7rem;margin:.5rem 0}
@@ -71,7 +77,7 @@ a.menu-item.danger{color:var(--err)}
 .switch span{position:absolute;inset:0;background:#2a2e38;border-radius:99px;transition:background .2s}
 .switch span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#aab;transition:left .2s,background .2s}
 .switch input:checked+span{background:var(--pri)}.switch input:checked+span::after{left:19px;background:#fff}
-.switch input:disabled+span{opacity:.5}
+.switch input:disabled{cursor:not-allowed}
 .seg{display:inline-flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
 .seg button{border:0;border-radius:0;background:var(--field);padding:.38rem .7rem}.seg button.sel{background:var(--pri);color:#fff}
 .item{display:flex;align-items:center;gap:.6rem;padding:.45rem .8rem;border:1px solid var(--line);background:var(--panel);border-radius:8px;margin-bottom:.4rem}
@@ -87,25 +93,31 @@ button.chip{cursor:pointer}button.chip.sel{background:#232c57;border-color:var(-
 .vars{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem}.vars button{font:.72rem monospace;padding:.1rem .4rem;color:#9db4ff}
 details.card>summary{cursor:pointer;font-weight:600;list-style:none}details.card>summary::-webkit-details-marker{display:none}
 details.card>summary::before{content:"+ ";color:var(--mute)}details.card[open]>summary::before{content:"– "}
-details.more{margin-top:.4rem}details.more>summary{cursor:pointer;color:var(--mute);font-size:.82rem}
+details.more{margin-top:.5rem}details.more>summary{cursor:pointer;color:var(--mute);font-size:.82rem}
+.tag-kbd{font:.72rem monospace;color:#9db4ff;background:var(--field);border:1px solid var(--line);border-radius:5px;padding:0 .3rem;margin-right:.25rem;white-space:nowrap}
 
 /* feature cards: title + toggle, settings slide down underneath */
-.fcard{transition:border-color .2s}
+.fcard{transition:border-color .2s,opacity .2s}
 .fcard.bad{border-color:#5a2f2f}
+.fcard.locked{opacity:.55;background:#13151a}
+.fcard.locked .fhead{cursor:not-allowed}
 .fhead{display:flex;align-items:center;gap:.8rem}
 .ftitle{display:flex;align-items:center;gap:.5rem}.ftitle b{font-size:.98rem}
+.cfoot{border-top:1px solid var(--line);margin-top:.6rem}.cfoot details.more{margin-top:.3rem}.fcard.locked .cfoot{display:none}
+.lockmsg{font-size:.78rem;color:#a99bff;margin-top:.2rem}
 .slide{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease}
 .slide.open{grid-template-rows:1fr}
 .slide>.inner{overflow:hidden;min-height:0}
 .panel{padding-top:.75rem;margin-top:.6rem;border-top:1px solid var(--line);opacity:0;transform:translateY(-6px);transition:opacity .25s ease,transform .3s ease}
 .slide.open .panel{opacity:1;transform:none}
 .hint{font-size:.8rem;margin:0 0 .5rem;color:var(--mute)}.hint.warn{color:var(--warn)}.hint.bad{color:var(--err)}
+.autorow{display:flex;align-items:center;gap:.6rem;margin:0 0 .6rem;flex-wrap:wrap}
 .shake{animation:shakeX .45s}
 @keyframes shakeX{0%,100%{transform:none}15%{transform:translateX(-9px)}30%{transform:translateX(8px)}45%{transform:translateX(-6px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
 
 /* floating save bar */
-.savebar{position:fixed;left:50%;bottom:16px;transform:translate(-50%,160%);width:min(720px,calc(100vw - 24px));display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem .55rem 1rem;background:#0b0c10;border:1px solid var(--line2);border-radius:10px;box-shadow:0 8px 30px #000b;transition:transform .38s cubic-bezier(.2,.9,.3,1.1);z-index:30}
-.savebar.show{transform:translate(-50%,0)}
+.savebar{position:fixed;left:50%;bottom:16px;transform:translate(-50%,160%);width:min(720px,calc(100vw - 24px));display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem .55rem 1rem;background:#0b0c10;border:1px solid var(--line2);border-radius:10px;box-shadow:0 8px 30px #000b;transition:transform .38s cubic-bezier(.2,.9,.3,1.1),visibility 0s .38s;visibility:hidden;z-index:30}
+.savebar.show{transform:translate(-50%,0);visibility:visible;transition-delay:0s}
 .savebar.shake{animation:shakeBar .45s}
 @keyframes shakeBar{0%,100%{transform:translate(-50%,0)}15%{transform:translate(calc(-50% - 9px),0)}30%{transform:translate(calc(-50% + 8px),0)}45%{transform:translate(calc(-50% - 6px),0)}60%{transform:translate(calc(-50% + 5px),0)}75%{transform:translate(calc(-50% - 3px),0)}}
 
@@ -137,7 +149,6 @@ details.more{margin-top:.4rem}details.more>summary{cursor:pointer;color:var(--mu
         <div class="menu left" id="guildMenu" role="listbox" hidden></div>
       </div>
       <button type="button" id="refresh" class="iconbtn" title="Refresh servers" aria-label="Refresh servers"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 10a6.5 6.5 0 1 1-2-4.7"/><path d="M16.5 3v3.5H13"/></svg></button>
-      <span id="betaTag" class="badge beta" hidden>BETA ACCESS</span>
     </div>
     <div id="banner" class="card" hidden></div>
     <div class="tabs" id="tabs"></div>
@@ -176,6 +187,15 @@ const shake = (node) => { node.classList.remove('shake'); void node.offsetWidth;
 const CARET = '<svg class="caret" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 5 5-5"/></svg>';
 const muted = (text) => el('p', { className: 'muted small', textContent: text });
 
+// Puts "Label." ".." "..." on a button and animates the dots. Returns a function that stops it.
+function dots(btn, label) {
+  const d = el('span', { className: 'dots', textContent: '.' });
+  btn.replaceChildren(label, d);
+  let n = 1;
+  const t = setInterval(() => { n = (n % 3) + 1; d.textContent = '.'.repeat(n); }, 350);
+  return () => clearInterval(t);
+}
+
 // ---- small building blocks ----
 const field = (label, node) => el('label', { className: 'field' }, el('span', { textContent: label }), node);
 const check = (label, on) => { const input = el('input', { type: 'checkbox', checked: !!on }); return { input, node: el('label', { className: 'check' }, input, label) }; };
@@ -185,9 +205,10 @@ function seg(options, value, onchange) {
   const btns = options.map(([v, label]) => { const b = el('button', { type: 'button', textContent: label }); b.onclick = () => { cur = v; paint(); if (onchange) onchange(v); }; return [v, b]; });
   const paint = () => btns.forEach(([v, b]) => b.classList.toggle('sel', v === cur));
   box.append(...btns.map((x) => x[1])); paint();
-  return { node: box, get: () => cur };
+  return { node: box, get: () => cur, set: (v) => { cur = v; paint(); } };
 }
 const sameSet = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+const rulesKey = (rules) => [...rules].map((r) => `${r.channelId}:${r.enabled ? 1 : 0}`).sort().join(',');
 
 // ---- dropdown menus (profile, server picker) ----
 const closers = [];
@@ -200,7 +221,7 @@ function dropdown(btn, menu) {
 document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) closers.forEach((c) => c()); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closers.forEach((c) => c()); });
 
-// ---- floating "unsaved changes" bar (one per tab; only the tab being viewed can be dirty) ----
+// ---- floating "unsaved changes" bar (one controller per tab; only the tab being viewed can be dirty) ----
 let tab = null; let loaded = {}; let ctls = {}; let saving = false;
 const bar = $('#savebar');
 function refreshBar() {
@@ -216,38 +237,126 @@ function guard() {
 $('#sbReset').onclick = () => { if (!saving) ctls[tab]?.reset(); };
 $('#sbSave').onclick = async () => {
   const c = ctls[tab]; if (!c || saving) return;
-  saving = true; $('#sbSave').textContent = 'Saving…'; $('#sbSave').disabled = true; $('#sbReset').disabled = true;
-  try { await c.save(); } finally { saving = false; $('#sbSave').textContent = 'Save Changes'; $('#sbSave').disabled = false; $('#sbReset').disabled = false; refreshBar(); }
+  saving = true; const btn = $('#sbSave'); btn.disabled = true; $('#sbReset').disabled = true;
+  const stop = dots(btn, 'Saving');
+  try { await c.save(); } finally { stop(); saving = false; btn.textContent = 'Save Changes'; btn.disabled = false; $('#sbReset').disabled = false; refreshBar(); }
 };
 window.addEventListener('beforeunload', (e) => { if (ctls[tab]?.dirty()) { e.preventDefault(); e.returnValue = ''; } });
 
-// A card with a title, description and a toggle. Its settings panel slides down when switched on and back up when off.
-function featureCard({ title, desc, beta, onToggle }) {
+/**
+ * A card with a title, description and a toggle. Its settings panel slides down when switched on and back up when off.
+ * locked = a beta command this server can't use yet: greyed out, toggle disabled, nothing can be changed.
+ */
+function featureCard({ title, desc, forms, beta, locked, onToggle }) {
   const t = sw(false, (input) => onToggle(input.checked));
+  if (locked) t.input.disabled = true;
   const hint = el('p', { className: 'hint', hidden: true });
-  const panel = el('div', { className: 'panel' }, hint);
+  const autoBtn = el('button', { type: 'button', className: 'auto', textContent: 'Auto configure' });
+  const autoRow = el('div', { className: 'autorow', hidden: true }, autoBtn);
+  const panel = el('div', { className: 'panel' }, hint, autoRow);
   const slide = el('div', { className: 'slide', inert: true }, el('div', { className: 'inner' }, panel));
-  const node = el('div', { className: 'card fcard' },
+  const foot = el('div', { className: 'cfoot', hidden: true });
+  const node = el('div', { className: `card fcard${locked ? ' locked' : ''}` },
     el('div', { className: 'fhead' },
-      el('div', { className: 'grow' }, el('div', { className: 'ftitle' }, el('b', { textContent: title }), beta && el('span', { className: 'badge beta', textContent: 'BETA' })), el('div', { className: 'muted small', textContent: desc })),
+      el('div', { className: 'grow' },
+        el('div', { className: 'ftitle' }, el('b', { textContent: title }), beta && el('span', { className: 'badge beta', textContent: 'BETA' })),
+        el('div', { className: 'muted small' }, ...(forms || []).map((f) => el('span', { className: 'tag-kbd', textContent: f })), desc),
+        locked && el('div', { className: 'lockmsg', textContent: 'Beta command: not available for this server yet.' })),
       t.node),
-    slide);
+    slide, foot);
+  let wantOpen = false;
+  const paintSlide = () => { // only slides open when there is something to show in it
+    const open = !locked && wantOpen && [...panel.children].some((c) => !c.hidden);
+    slide.classList.toggle('open', open); slide.inert = !open;
+  };
   return {
-    node, panel,
-    setOpen(v) { t.input.checked = v; slide.classList.toggle('open', v); slide.inert = !v; },
-    setHint(text, kind) { hint.textContent = text || ''; hint.className = `hint ${kind || ''}`; hint.hidden = !text; },
+    node, panel, foot, locked: !!locked,
+    setOpen(v) { wantOpen = v; t.input.checked = !locked && v; paintSlide(); },
+    setHint(text, kind) { hint.textContent = text || ''; hint.className = `hint ${kind || ''}`; hint.hidden = !text; paintSlide(); },
     setBad(v) { node.classList.toggle('bad', v); },
     shake() { shake(node); },
+    // The grey "Auto configure" button, shown while a switched-on command isn't set up yet.
+    auto: {
+      button: autoBtn,
+      show(v) { autoRow.hidden = !v; paintSlide(); },
+      async run(job) {
+        autoBtn.disabled = true; const stop = dots(autoBtn, 'Configuring');
+        let r; try { r = await job(); } finally { stop(); autoBtn.disabled = false; autoBtn.textContent = 'Auto configure'; }
+        return r;
+      },
+    },
   };
 }
-// (Re)fills a channel <select>. New setups get a "Select a channel…" placeholder, so nothing is chosen for you.
-function fillChannels(select, channels, { isNew, create, value }) {
+
+// (Re)fills a channel <select>. Nothing is chosen for you: new setups get a "Select a channel…" placeholder.
+function fillChannels(select, channels, { isNew, value }) {
   select.replaceChildren();
   if (isNew) select.append(el('option', { value: '', disabled: true, textContent: 'Select a channel…' }));
-  if (create) select.append(el('option', { value: '__create', textContent: 'Create one for me (Activity category)' }));
   channels.forEach((c) => select.append(el('option', { value: c.id, textContent: `#${c.name}${c.parent ? ` (${c.parent})` : ''}` })));
-  if (value && value !== '__create' && !channels.some((c) => c.id === value)) select.append(el('option', { value, textContent: 'Unknown channel' }));
+  if (value && !channels.some((c) => c.id === value)) select.append(el('option', { value, textContent: 'Unknown channel' }));
   select.value = value || '';
+}
+
+/**
+ * Generic controller for a tab made of feature cards (General, Games, Feeds).
+ * o: keys, titleOf(k), snap{k: saved | null}, drafts{k}, cards{k}, fromSnap(k), differs(k), problem(k), hintOf(k), saveOne(k) -> {ok,status,data}, refetch(keys) -> loads fresh snapshots into snap
+ */
+function makeTab(o) {
+  const bad = {};
+  const autoing = new Set(); // cards whose Auto configure is running: they save themselves, so they never count as unsaved
+  const dirtyKey = (k) => {
+    if (o.cards[k].locked || autoing.has(k)) return false;
+    const c = o.snap[k]; const d = o.drafts[k];
+    if (!c) return d.enabled; // not set up: switching it on is a change
+    return d.enabled !== c.enabled || o.differs(k);
+  };
+  function paintHint(k) {
+    const d = o.drafts[k]; const p = o.problem(k); const card = o.cards[k];
+    if (bad[k] && p) card.setHint(p, 'bad'); else card.setHint(o.hintOf?.(k) || '', 'warn');
+    card.setBad(!!(bad[k] && p));
+    card.auto?.show(!card.locked && d.enabled && !o.snap[k]);
+  }
+  const edit = (k) => { bad[k] = false; paintHint(k); refreshBar(); };
+  const paintAll = () => o.keys.forEach((k) => { o.cards[k].sync(); paintHint(k); });
+  async function reload(keys) {
+    await o.refetch(keys);
+    keys.forEach((k) => { o.drafts[k] = o.fromSnap(k); bad[k] = false; o.cards[k].sync(); paintHint(k); });
+  }
+  return {
+    edit, paintHint, paintAll, reload,
+    dirty: () => o.keys.some(dirtyKey),
+    reset() { o.keys.forEach((k) => { o.drafts[k] = o.fromSnap(k); bad[k] = false; }); paintAll(); refreshBar(); },
+    async save() {
+      const blocked = o.keys.filter((k) => !o.cards[k].locked && o.problem(k));
+      if (blocked.length) {
+        blocked.forEach((k) => { bad[k] = true; paintHint(k); o.cards[k].shake(); });
+        shake(bar); buzz();
+        const names = blocked.map((k) => o.titleOf(k)).join(' and ');
+        toast(false, `Finish ${names} first: set ${blocked.length > 1 ? 'them' : 'it'} up (Auto configure works), or switch ${blocked.length > 1 ? 'them' : 'it'} off.`);
+        return false;
+      }
+      const done = []; let failed = false;
+      for (const k of o.keys.filter(dirtyKey)) {
+        const r = await o.saveOne(k);
+        if (!r.ok) { toast(false, `${o.titleOf(k)}: ${r.data.error || `Failed (${r.status}).`}`); failed = true; break; }
+        done.push(k);
+      }
+      if (done.length) await reload(done);
+      if (!failed) toast(true, 'Changes saved.');
+      return !failed;
+    },
+    // Runs a card's Auto configure, then loads what the bot just made (the new channel is in the list by then).
+    async auto(k, job) {
+      autoing.add(k); refreshBar();
+      try {
+        const r = await o.cards[k].auto.run(job);
+        if (!r.ok) { toast(false, r.data.error || `Failed (${r.status}).`); return; }
+        toast(true, r.data.message || 'Configured.');
+        autoing.delete(k);
+        await reload([k]);
+      } finally { autoing.delete(k); refreshBar(); }
+    },
+  };
 }
 
 // ---------------- servers ----------------
@@ -255,25 +364,27 @@ let inviteUrl = '#';
 let guilds = []; let curId = null;
 const curGuild = () => guilds.find((x) => x.id === curId);
 const gIcon = (g) => (g.icon ? el('img', { className: 'gicon', src: g.icon, alt: '' }) : el('span', { className: 'gicon ph', textContent: (g.name || '?').trim().charAt(0).toUpperCase() }));
+const betaSticker = () => el('span', { className: 'badge beta', textContent: 'BETA' });
 function paintGuilds() {
   const g = curGuild();
-  $('#guildBtn').replaceChildren(g ? gIcon(g) : el('span', { className: 'gicon ph', textContent: '?' }), el('span', { className: 'nm', textContent: g ? g.name : 'No servers' }), el('span', { innerHTML: CARET, style: 'display:flex' }));
+  $('#guildBtn').replaceChildren(...[g ? gIcon(g) : el('span', { className: 'gicon ph', textContent: '?' }), el('span', { className: 'nm', textContent: g ? g.name : 'No servers' }), g?.beta ? betaSticker() : null, el('span', { className: 'spacer' }), el('span', { innerHTML: CARET, style: 'display:flex' })].filter(Boolean));
   $('#guildBtn').disabled = !guilds.length;
   $('#guildMenu').replaceChildren(...guilds.map((x) => {
-    const b = el('button', { type: 'button', className: `menu-item${x.id === curId ? ' sel' : ''}`, role: 'option' }, gIcon(x), el('span', { className: 'nm', textContent: x.name }));
+    const b = el('button', { type: 'button', className: `menu-item${x.id === curId ? ' sel' : ''}`, role: 'option' }, gIcon(x), el('span', { className: 'nm', textContent: x.name }), x.beta && betaSticker());
     b.onclick = () => { closeGuild(); if (x.id !== curId && guard()) { curId = x.id; paintGuilds(); loadGuild(); } };
     return b;
   }));
 }
 const closeGuild = dropdown($('#guildBtn'), $('#guildMenu'));
 
+// Refresh: re-reads your servers from Discord, asks the bot to re-publish this server's channels and roles, then reloads everything on screen.
 async function refreshGuilds() {
   const btn = $('#refresh');
   if (btn.classList.contains('spinning') || !guard()) return;
   btn.classList.add('spinning');
-  const r = await call('POST', '/api/refresh');
-  btn.classList.remove('spinning');
+  const r = await call('POST', '/api/refresh', { guildId: curId });
   if (!r.ok) {
+    btn.classList.remove('spinning');
     toast(false, r.data.error || `Failed (${r.status}).`);
     if (r.status === 401) setTimeout(() => { location.href = '/auth/discord'; }, 1800);
     return;
@@ -281,79 +392,189 @@ async function refreshGuilds() {
   guilds = r.data;
   if (!guilds.some((x) => x.id === curId)) curId = guilds[0]?.id || null;
   paintGuilds();
-  await loadGuild();
-  toast(true, 'Servers refreshed.');
+  try { await loadGuild(); } finally { btn.classList.remove('spinning'); }
+  toast(true, 'Refreshed.');
 }
 $('#refresh').onclick = refreshGuilds;
 
-// ---------------- general (!emoji) ----------------
+// ---------------- channel rules (General): "off in these channels" / "only on in these channels" ----------------
+function rulesEditor(d, channels, onEdit) {
+  const chName = (id) => channels.find((c) => c.id === id)?.name ?? 'unknown-channel';
+  const summary = el('summary');
+  const chips = el('div', { className: 'chips' });
+  const select = el('select');
+  const add = el('button', { type: 'button', textContent: 'Add' });
+  const note = el('p', { className: 'muted small', style: 'margin:.4rem 0 0' });
+  const body = el('div', { style: 'margin-top:.4rem' }, el('div', { className: 'row' }, select, add), chips, note);
+  const node = el('details', { className: 'more' }, summary, body);
+  function paint() {
+    const on = d.enabled; const n = d.rules.length;
+    summary.textContent = `Channels · ${n ? (on ? `off in ${n} channel${n === 1 ? '' : 's'}` : `only on in ${n} channel${n === 1 ? '' : 's'}`) : (on ? 'works in every channel' : 'off everywhere')}`;
+    chips.replaceChildren(...d.rules.map((r) => el('span', { className: 'chip' }, `#${chName(r.channelId)}`, el('button', { type: 'button', title: 'Remove', textContent: '×', onclick: () => { d.rules = d.rules.filter((x) => x !== r); paint(); onEdit(); } }))));
+    const used = new Set(d.rules.map((r) => r.channelId));
+    select.replaceChildren(el('option', { value: '', textContent: on ? 'Turn off in a channel…' : 'Turn on in a channel…' }), ...channels.filter((c) => !used.has(c.id)).map((c) => el('option', { value: c.id, textContent: `#${c.name}${c.parent ? ` (${c.parent})` : ''}` })));
+    note.textContent = on ? 'A channel rule beats the server-wide switch: it stays on everywhere else.' : 'Switched off server-wide, so it only works in the channels you add here.';
+  }
+  add.onclick = () => { if (!select.value) return; d.rules.push({ channelId: select.value, enabled: !d.enabled }); paint(); onEdit(); };
+  paint();
+  return { node, paint };
+}
+
+// ---------------- general: every command members type ----------------
+const GENERAL_SETTINGS = new Set(['quote', 'afk', 'emoji']);
+
 async function loadGeneral(g) {
   const box = $('#pane-general'); box.replaceChildren(muted('Loading…'));
-  if (!g.features?.emoji?.on) { box.replaceChildren(muted('Nothing to configure here yet.')); return; }
-  const r = await call('GET', `/api/guilds/${g.id}/emoji`);
+  const r = await call('GET', `/api/guilds/${g.id}/general`);
   if (curGuild()?.id !== g.id) return;
   if (!r.ok) return box.replaceChildren(muted(r.data.error === 'not_in_guild' ? 'The bot is not in this server yet.' : (r.data.error || 'Could not load.')));
-  buildEmoji(box, g, r.data);
+  buildGeneral(box, g, r.data);
 }
 
-function buildEmoji(box, g, data) {
-  const { roles } = data;
-  let snap = { enabled: data.config.enabled, defaultPerm: data.config.defaultPerm, userIds: new Set(data.config.userIds), roleIds: new Set(data.config.roleIds) };
-  let d = { enabled: snap.enabled, defaultPerm: snap.defaultPerm, userIds: new Set(snap.userIds), roleIds: new Set(snap.roleIds) };
-  const edit = () => refreshBar();
+function buildGeneral(box, g, data) {
+  let { channels } = data; const { roles } = data;
+  const items = {}; data.items.forEach((i) => { items[i.key] = i; });
+  const keys = data.items.map((i) => i.key);
+  const snap = {}; const drafts = {}; const cards = {};
+  const cp = (s) => ({ ...s });
+  const settingsOf = (k, s) => {
+    if (k === 'quote') return { channelId: s?.channelId || '', respondType: s?.respondType || 'reaction', deleteAfter: s?.deleteAfter ?? 10 };
+    if (k === 'afk') return { respondType: s?.respondType || 'reaction', reaction: s?.reaction || '\u{1F4F5}', message: s?.message || '${username} has gone afk due to ${reason}', deleteAfter: s?.deleteAfter ?? 10, rename: !!s?.rename };
+    if (k === 'emoji') return { defaultPerm: s?.defaultPerm ?? true, userIds: [...(s?.userIds || [])], roleIds: [...(s?.roleIds || [])] };
+    return null;
+  };
+  const setSnap = (settings) => {
+    keys.forEach((k) => {
+      const it = items[k];
+      snap[k] = it.state === null ? null : { enabled: it.state, rules: it.rules.map(cp), s: settingsOf(k, settings[k]) };
+    });
+  };
+  setSnap(data.settings);
+  const fromSnap = (k) => {
+    const c = snap[k];
+    return { enabled: c ? c.enabled : false, rules: c ? c.rules.map(cp) : [], s: c ? settingsOf(k, c.s) : settingsOf(k, null) };
+  };
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const setsDiffer = (k) => {
+    const c = snap[k]?.s; const d = drafts[k].s;
+    if (!GENERAL_SETTINGS.has(k)) return false;
+    if (!c) return true;
+    if (k === 'emoji') return d.defaultPerm !== c.defaultPerm || !sameSet(new Set(d.userIds), new Set(c.userIds)) || !sameSet(new Set(d.roleIds), new Set(c.roleIds));
+    return !eq(d, c);
+  };
+  const differs = (k) => {
+    const c = snap[k]; const d = drafts[k];
+    if (rulesKey(d.rules) !== rulesKey(c.rules)) return true;
+    return d.enabled && setsDiffer(k);
+  };
+  const problem = (k) => {
+    const d = drafts[k]; if (!d.enabled) return null;
+    if (k === 'quote' && !d.s.channelId) return snap[k] ? 'Pick a channel for quotes.' : 'Finish setting this up (Auto configure works), or switch it off.';
+    return null;
+  };
+  const edit = (k) => T.edit(k);
 
-  const card = featureCard({ title: '!emoji', desc: 'Choose who can add emoji to this server with !emoji. Same as /emoji in Discord.', beta: g.features.emoji.stage === 'beta',
-    onToggle: (on) => { d.enabled = on; card.setOpen(on); edit(); } });
-  const def = check('Anyone with the Manage Expressions permission', d.defaultPerm);
-  def.input.onchange = () => { d.defaultPerm = def.input.checked; edit(); };
+  let T;
+  keys.forEach((k) => {
+    const it = items[k];
+    drafts[k] = fromSnap(k);
+    const card = featureCard({
+      title: it.name, desc: it.desc, forms: it.forms, beta: it.stage === 'beta', locked: it.locked,
+      onToggle: (on) => { drafts[k].enabled = on; drafts[k].rules = []; card.setOpen(on); card.rules?.paint(); edit(k); },
+    });
+    cards[k] = card;
+    const syncs = [];
+    const d = () => drafts[k];
 
-  const userChips = el('div', { className: 'chips' });
-  const paintUsers = () => userChips.replaceChildren(...[...d.userIds].map((u) => el('span', { className: 'chip' }, u, el('button', { type: 'button', title: 'Remove', textContent: '×', onclick: () => { d.userIds.delete(u); paintUsers(); edit(); } }))));
-  const userInput = el('input', { type: 'text', placeholder: 'Paste user IDs or @mentions, then press Enter' });
-  const addUsers = () => { const ids = userInput.value.match(/\d{15,25}/g) || []; if (ids.length) { ids.forEach((u) => d.userIds.add(u)); userInput.value = ''; paintUsers(); edit(); } };
-  userInput.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ',') { ev.preventDefault(); addUsers(); } };
-  userInput.onpaste = () => setTimeout(addUsers, 0); userInput.onblur = addUsers;
+    if (k === 'quote') {
+      const select = el('select'); select.onchange = () => { d().s.channelId = select.value; edit(k); };
+      const rtype = seg([['reaction', 'Reaction'], ['message', 'Message'], ['none', 'None']], 'reaction', (v) => { d().s.respondType = v; edit(k); });
+      const del = el('input', { type: 'number', min: 0, max: 60 }); del.oninput = () => { d().s.deleteAfter = parseInt(del.value, 10); edit(k); };
+      card.panel.append(el('div', { className: 'grid' }, field('Quotes channel', select), field('How I answer the person who quoted', rtype.node), field('Remove my answer after (seconds, 0 = keep)', del)));
+      syncs.push(() => { fillChannels(select, channels, { isNew: !snap[k], value: d().s.channelId }); rtype.set(d().s.respondType); del.value = Number.isNaN(d().s.deleteAfter) ? '' : d().s.deleteAfter; });
+    }
+    if (k === 'afk') {
+      const rtype = seg([['reaction', 'Reaction'], ['message', 'Message']], 'reaction', (v) => { d().s.respondType = v; sync(); edit(k); });
+      const resp = el('input', { type: 'text', maxLength: 300 });
+      resp.oninput = () => { if (d().s.respondType === 'reaction') d().s.reaction = resp.value; else d().s.message = resp.value; edit(k); };
+      const respField = field('Emoji', resp);
+      const del = el('input', { type: 'number', min: 0, max: 60 }); del.oninput = () => { d().s.deleteAfter = parseInt(del.value, 10); edit(k); };
+      const ren = check('Rename people to [AFK] Name while away', false); ren.input.onchange = () => { d().s.rename = ren.input.checked; edit(k); };
+      card.panel.append(el('div', { className: 'grid' }, field('How I answer', rtype.node), respField, field('Remove my answer after (seconds, 0 = keep)', del)), el('div', { className: 'checks' }, ren.node),
+        el('p', { className: 'muted small', style: 'margin:0', textContent: 'Message variables: ${usermention} ${username} ${reason}' }));
+      const sync = () => {
+        const isR = d().s.respondType === 'reaction';
+        respField.firstChild.textContent = isR ? 'Emoji' : 'Message';
+        resp.placeholder = isR ? '\u{1F4F5}' : '${username} has gone afk due to ${reason}';
+        resp.value = isR ? d().s.reaction : d().s.message;
+        rtype.set(d().s.respondType);
+      };
+      syncs.push(() => { sync(); del.value = Number.isNaN(d().s.deleteAfter) ? '' : d().s.deleteAfter; ren.input.checked = d().s.rename; });
+    }
+    if (k === 'emoji') {
+      const def = check('Anyone with the Manage Expressions permission', true); def.input.onchange = () => { d().s.defaultPerm = def.input.checked; edit(k); };
+      const userChips = el('div', { className: 'chips' });
+      const paintUsers = () => userChips.replaceChildren(...d().s.userIds.map((u) => el('span', { className: 'chip' }, u, el('button', { type: 'button', title: 'Remove', textContent: '×', onclick: () => { d().s.userIds = d().s.userIds.filter((x) => x !== u); paintUsers(); edit(k); } }))));
+      const userInput = el('input', { type: 'text', placeholder: 'Paste user IDs or @mentions, then press Enter' });
+      const addUsers = () => { const ids = userInput.value.match(/\d{15,25}/g) || []; if (ids.length) { ids.forEach((u) => { if (!d().s.userIds.includes(u)) d().s.userIds.push(u); }); userInput.value = ''; paintUsers(); edit(k); } };
+      userInput.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ',') { ev.preventDefault(); addUsers(); } };
+      userInput.onpaste = () => setTimeout(addUsers, 0); userInput.onblur = addUsers;
+      const roleChips = el('div', { className: 'chips' }); const roleBtns = [];
+      if (!roles.length) roleChips.append(el('span', { className: 'muted small', textContent: 'No roles found.' }));
+      roles.forEach((role) => {
+        const b = el('button', { type: 'button', className: 'chip' }, el('span', { className: 'dot', style: role.color && role.color !== '#000000' ? `background:${role.color}` : '' }), role.name);
+        b.onclick = () => { const s = d().s; s.roleIds = s.roleIds.includes(role.id) ? s.roleIds.filter((x) => x !== role.id) : [...s.roleIds, role.id]; b.classList.toggle('sel', s.roleIds.includes(role.id)); edit(k); };
+        roleBtns.push([role.id, b]); roleChips.append(b);
+      });
+      card.panel.append(def.node, el('div', { className: 'field', style: 'margin-top:.7rem' }, el('span', { textContent: 'Roles that can use it' }), roleChips), el('div', { className: 'field', style: 'margin-top:.4rem' }, el('span', { textContent: 'People that can use it' }), userChips, userInput));
+      syncs.push(() => { def.input.checked = d().s.defaultPerm; paintUsers(); roleBtns.forEach(([id, b]) => b.classList.toggle('sel', d().s.roleIds.includes(id))); });
+    }
+    if (k === 'trigger') card.panel.append(muted('Make and edit your own commands in the Triggers tab.'));
 
-  const roleChips = el('div', { className: 'chips' });
-  const roleBtns = [];
-  if (!roles.length) roleChips.append(el('span', { className: 'muted small', textContent: 'No roles found.' }));
-  roles.forEach((role) => {
-    const b = el('button', { type: 'button', className: 'chip' }, el('span', { className: 'dot', style: role.color && role.color !== '#000000' ? `background:${role.color}` : '' }), role.name);
-    b.onclick = () => { if (d.roleIds.has(role.id)) d.roleIds.delete(role.id); else d.roleIds.add(role.id); b.classList.toggle('sel', d.roleIds.has(role.id)); edit(); };
-    roleBtns.push([role.id, b]); roleChips.append(b);
+    // Channel rules: only commands members type can be limited to channels.
+    let rules = null;
+    if (BY_CHANNEL.has(k)) { rules = rulesEditor(drafts[k], channels, () => edit(k)); card.rules = rules; card.foot.hidden = false; card.foot.append(rules.node); }
+
+    if (GENERAL_SETTINGS.has(k) && k !== 'emoji') {
+      card.auto.button.onclick = () => T.auto(k, () => call('PUT', `/api/guilds/${g.id}/commands/${k}`, { enabled: true, rules: [], settings: {} }));
+    }
+    card.sync = () => { drafts[k] = drafts[k] || fromSnap(k); syncs.forEach((f) => f()); if (rules) { const wasOpen = rules.node.open; rules.node.remove(); rules = rulesEditor(drafts[k], channels, () => edit(k)); rules.node.open = wasOpen; card.rules = rules; card.foot.append(rules.node); } card.setOpen(drafts[k].enabled); };
   });
-  card.panel.append(
-    el('label', { className: 'check', style: 'gap:.6rem' }, def.node),
-    el('div', { className: 'field', style: 'margin-top:.7rem' }, el('span', { textContent: 'Roles that can use it' }), roleChips),
-    el('div', { className: 'field', style: 'margin-top:.4rem' }, el('span', { textContent: 'People that can use it' }), userChips, userInput));
 
-  const sync = () => {
-    card.setOpen(d.enabled); def.input.checked = d.defaultPerm; paintUsers();
-    roleBtns.forEach(([id, b]) => b.classList.toggle('sel', d.roleIds.has(id)));
-  };
-  const copy = () => { d = { enabled: snap.enabled, defaultPerm: snap.defaultPerm, userIds: new Set(snap.userIds), roleIds: new Set(snap.roleIds) }; };
-  ctls.general = {
-    dirty: () => d.enabled !== snap.enabled || (d.enabled && (d.defaultPerm !== snap.defaultPerm || !sameSet(d.userIds, snap.userIds) || !sameSet(d.roleIds, snap.roleIds))),
-    reset() { copy(); sync(); refreshBar(); },
-    async save() {
-      addUsers();
-      const body = d.enabled ? { enabled: true, defaultPerm: d.defaultPerm, userIds: [...d.userIds], roleIds: [...d.roleIds] } : { enabled: false };
-      const r = await call('PUT', `/api/guilds/${g.id}/emoji`, body);
-      if (!r.ok) { toast(false, r.data.error || `Failed (${r.status}).`); return false; }
-      if (d.enabled) snap = { enabled: true, defaultPerm: d.defaultPerm, userIds: new Set(d.userIds), roleIds: new Set(d.roleIds) }; else snap.enabled = false;
-      copy(); sync(); toast(true, 'Changes saved.'); return true;
+  async function saveOne(k) {
+    const d = drafts[k]; const c = snap[k];
+    const body = { enabled: d.enabled, rules: d.rules };
+    if (d.enabled && GENERAL_SETTINGS.has(k) && (!c || setsDiffer(k))) {
+      const s = d.s;
+      if (k === 'quote') body.settings = { channelId: s.channelId || null, respondType: s.respondType, deleteAfter: s.deleteAfter };
+      if (k === 'afk') body.settings = { respondType: s.respondType, respond: s.respondType === 'reaction' ? s.reaction : s.message, deleteAfter: s.deleteAfter, rename: s.rename };
+      if (k === 'emoji') body.settings = { defaultPerm: s.defaultPerm, userIds: s.userIds, roleIds: s.roleIds };
+    }
+    return call('PUT', `/api/guilds/${g.id}/commands/${k}`, body);
+  }
+  T = makeTab({
+    keys, titleOf: (k) => items[k].name, snap, drafts, cards, fromSnap, differs, problem, saveOne,
+    async refetch() {
+      const f = await call('GET', `/api/guilds/${g.id}/general`);
+      if (!f.ok) return;
+      channels = f.data.channels;
+      f.data.items.forEach((i) => { items[i.key] = i; });
+      setSnap(f.data.settings);
     },
-  };
-  sync();
-  box.replaceChildren(card.node);
+  });
+  ctls.general = T;
+  keys.forEach((k) => { drafts[k] = fromSnap(k); });
+  T.paintAll();
+  box.replaceChildren(...keys.map((k) => cards[k].node));
   refreshBar();
 }
+const BY_CHANNEL = new Set(['summary', 'quote', 'define', 'wiki', 'afk', 'emoji', 'help', 'trigger']); // commands members type: can be limited per channel
 
 // ---------------- games ----------------
 const GAME_INFO = {
-  countryguess: { title: 'Country Guess', blurb: 'Members guess countries with !countryguess (or !cg) in one channel.' },
-  wordstory: { title: 'Word Story', blurb: 'Members write a story one word at a time.', warn: 'Saving changes restarts the story and posts a setup message in the channel.' },
-  wordchain: { title: 'Word Chain', blurb: 'Each word must start with the last letter of the previous one.', warn: 'Saving changes restarts the chain and posts a setup message in the channel.' },
+  countryguess: { title: 'Country Guess', blurb: 'Members guess countries with !countryguess (or !cg) in one channel.', forms: ['!countryguess', '!cg'] },
+  wordstory: { title: 'Word Story', blurb: 'Members write a story one word at a time.', forms: ['/wordstory'], warn: 'Saving changes restarts the story and posts a setup message in the channel.' },
+  wordchain: { title: 'Word Chain', blurb: 'Each word must start with the last letter of the previous one.', forms: ['/wordchain'], warn: 'Saving changes restarts the chain and posts a setup message in the channel.' },
 };
 const GAME_KEYS = Object.keys(GAME_INFO);
 
@@ -364,45 +585,37 @@ async function loadGames() {
   const r = await call('GET', `/api/guilds/${g.id}/games`);
   if (curGuild()?.id !== g.id) return; // the user switched servers meanwhile
   if (!r.ok) return box.replaceChildren(muted(r.data.error === 'not_in_guild' ? 'The bot is not in this server yet.' : (r.data.error || 'Could not load games.')));
-  buildGames(box, g.id, r.data);
+  buildGames(box, g, r.data);
 }
 
-function buildGames(box, guildId, data) {
+function buildGames(box, g, data) {
   const limits = data.limits.trigger; let channels = data.channels;
   const snap = { ...data.games }; // key -> saved config, or null when never set up
-  const drafts = {}; const cards = {}; const bad = {};
+  const drafts = {}; const cards = {};
   const fromSnap = (k) => { const c = snap[k]; return { enabled: c ? c.enabled : false, channelId: c ? c.channelId : '', trigger: c?.trigger ?? limits.default, consecutive: !!c?.consecutive, repeatingValid: !!c?.repeatingValid }; };
-  const settingsDiffer = (k) => {
-    const c = snap[k]; const d = drafts[k]; if (!c) return true;
+  const differs = (k) => {
+    const c = snap[k]; const d = drafts[k]; if (!d.enabled) return false;
     if (d.channelId !== c.channelId) return true;
     if (k === 'wordstory') return d.trigger !== c.trigger || d.consecutive !== !!c.consecutive;
     if (k === 'wordchain') return d.repeatingValid !== !!c.repeatingValid || d.consecutive !== !!c.consecutive;
     return false;
   };
-  const dirtyKey = (k) => { const c = snap[k]; const d = drafts[k]; if (!c) return d.enabled; return d.enabled !== c.enabled || (d.enabled && settingsDiffer(k)); };
-  // Why this game can't be saved as it is right now (null = fine).
   const problem = (k) => {
     const d = drafts[k]; if (!d.enabled) return null;
-    if (!snap[k] && d.channelId === '') return 'Finish setting this up, or switch it off.';
+    if (!snap[k] && d.channelId === '') return 'Finish setting this up (Auto configure works), or switch it off.';
     if (k === 'wordstory' && !(Number.isInteger(d.trigger) && d.trigger >= limits.min && d.trigger <= limits.max)) return `Words per story must be ${limits.min}-${limits.max}.`;
     return null;
   };
-  const edit = (k) => { bad[k] = false; paintHint(k); refreshBar(); };
-  function paintHint(k) {
-    const d = drafts[k]; const p = problem(k); const card = cards[k];
-    if (bad[k] && p) card.setHint(p, 'bad');
-    else if (!snap[k] && d.enabled) card.setHint('Not set up yet. Choose a channel, then press Save Changes — or switch it off.', 'warn');
-    else card.setHint(snap[k] ? (GAME_INFO[k].warn || '') : '', '');
-    card.setBad(!!(bad[k] && p));
-  }
+  const edit = (k) => T.edit(k);
+  let T;
 
   GAME_KEYS.forEach((k) => {
     const info = GAME_INFO[k];
     drafts[k] = fromSnap(k);
-    const card = featureCard({ title: info.title, desc: info.blurb, onToggle: (on) => { drafts[k].enabled = on; card.setOpen(on); edit(k); } });
+    const feat = g.features?.[k] || { on: true, stage: 'public' };
+    const card = featureCard({ title: info.title, desc: info.blurb, forms: info.forms, beta: feat.stage === 'beta', locked: !feat.on, onToggle: (on) => { drafts[k].enabled = on; card.setOpen(on); edit(k); } });
     cards[k] = card;
-    const select = el('select');
-    select.onchange = () => { drafts[k].channelId = select.value; edit(k); };
+    const select = el('select'); select.onchange = () => { drafts[k].channelId = select.value; edit(k); };
     const grid = el('div', { className: 'grid' }, field('Channel', select));
     const checks = el('div', { className: 'checks' });
     let trigger; let cons; let rep;
@@ -411,108 +624,86 @@ function buildGames(box, guildId, data) {
       trigger.oninput = () => { drafts[k].trigger = parseInt(trigger.value, 10); edit(k); };
       grid.append(field(`Words per story (${limits.min}-${limits.max})`, trigger));
     }
-    if (k === 'wordchain') {
-      rep = check('Allow repeated words'); rep.input.onchange = () => { drafts[k].repeatingValid = rep.input.checked; edit(k); }; checks.append(rep.node);
-    }
-    if (k !== 'countryguess') {
-      cons = check('Same person can write twice in a row'); cons.input.onchange = () => { drafts[k].consecutive = cons.input.checked; edit(k); }; checks.append(cons.node);
-    }
+    if (k === 'wordchain') { rep = check('Allow repeated words'); rep.input.onchange = () => { drafts[k].repeatingValid = rep.input.checked; edit(k); }; checks.append(rep.node); }
+    if (k !== 'countryguess') { cons = check('Same person can write twice in a row'); cons.input.onchange = () => { drafts[k].consecutive = cons.input.checked; edit(k); }; checks.append(cons.node); }
     card.panel.append(grid, checks);
+    card.auto.button.onclick = () => T.auto(k, () => { // no channel = the bot makes one under Activity; the other options you already picked are kept
+      const d = drafts[k]; const body = {};
+      if (k === 'wordstory' && Number.isInteger(d.trigger) && d.trigger >= limits.min && d.trigger <= limits.max) { body.trigger = d.trigger; body.consecutive = d.consecutive; }
+      if (k === 'wordchain') { body.repeatingValid = d.repeatingValid; body.consecutive = d.consecutive; }
+      return call('PUT', `/api/guilds/${g.id}/games/${k}`, body);
+    });
     card.sync = () => {
       const d = drafts[k];
-      fillChannels(select, channels, { isNew: !snap[k], create: !snap[k], value: d.channelId });
+      fillChannels(select, channels, { isNew: !snap[k], value: d.channelId });
       if (trigger) trigger.value = Number.isNaN(d.trigger) ? '' : d.trigger;
       if (cons) cons.input.checked = d.consecutive;
       if (rep) rep.input.checked = d.repeatingValid;
-      card.setOpen(d.enabled); paintHint(k);
+      card.setOpen(d.enabled);
     };
-    card.sync();
   });
 
   async function saveOne(k) {
     const c = snap[k]; const d = drafts[k];
-    const path = `/api/guilds/${guildId}/games/${k}`;
-    const toggle = (on) => call('POST', `${path}/enabled`, { enabled: on });
-    if (!d.enabled) return toggle(false);
-    if (!c || settingsDiffer(k)) {
-      const body = { channelId: d.channelId === '__create' ? null : d.channelId };
+    const path = `/api/guilds/${g.id}/games/${k}`;
+    if (!d.enabled) return call('POST', `${path}/enabled`, { enabled: false });
+    if (!c || differs(k)) {
+      const body = { channelId: d.channelId };
       if (k === 'wordstory') { body.trigger = d.trigger; body.consecutive = d.consecutive; }
       if (k === 'wordchain') { body.repeatingValid = d.repeatingValid; body.consecutive = d.consecutive; }
-      const r = await call('PUT', path, body);
-      if (!r.ok) return r;
-      const f = await call('GET', `/api/guilds/${guildId}/games`); // saving may or may not switch it on; make sure it ends up on
-      if (f.ok && f.data.games[k] && f.data.games[k].enabled !== true) return toggle(true);
-      return r;
+      return call('PUT', path, body); // saving a game also switches it on
     }
-    return toggle(true);
+    return call('POST', `${path}/enabled`, { enabled: true });
   }
-
-  ctls.games = {
-    dirty: () => GAME_KEYS.some(dirtyKey),
-    reset() { GAME_KEYS.forEach((k) => { drafts[k] = fromSnap(k); bad[k] = false; cards[k].sync(); }); refreshBar(); },
-    async save() {
-      const blocked = GAME_KEYS.filter((k) => problem(k));
-      if (blocked.length) {
-        blocked.forEach((k) => { bad[k] = true; paintHint(k); cards[k].shake(); });
-        shake(bar); buzz();
-        toast(false, `Finish ${blocked.map((k) => GAME_INFO[k].title).join(' and ')} first: set ${blocked.length > 1 ? 'them' : 'it'} up, or switch ${blocked.length > 1 ? 'them' : 'it'} off.`);
-        return false;
-      }
-      const done = []; let failed = false;
-      for (const k of GAME_KEYS.filter(dirtyKey)) {
-        const r = await saveOne(k);
-        if (!r.ok) { toast(false, `${GAME_INFO[k].title}: ${r.data.error || `Failed (${r.status}).`}`); failed = true; break; }
-        done.push(k);
-      }
-      if (done.length) {
-        const f = await call('GET', `/api/guilds/${guildId}/games`);
-        if (curGuild()?.id !== guildId) return !failed;
-        if (!f.ok) { await loadGames(); return !failed; }
-        channels = f.data.channels;
-        done.forEach((k) => { snap[k] = f.data.games[k] ?? null; drafts[k] = fromSnap(k); bad[k] = false; cards[k].sync(); });
-      }
-      if (!failed) toast(true, 'Changes saved.');
-      return !failed;
+  T = makeTab({
+    keys: GAME_KEYS, titleOf: (k) => GAME_INFO[k].title, snap, drafts, cards, fromSnap, differs, problem, saveOne,
+    hintOf: (k) => (snap[k] ? (GAME_INFO[k].warn || '') : ''),
+    async refetch() {
+      const f = await call('GET', `/api/guilds/${g.id}/games`);
+      if (!f.ok) return;
+      channels = f.data.channels;
+      GAME_KEYS.forEach((k) => { snap[k] = f.data.games[k] ?? null; });
     },
-  };
+  });
+  ctls.games = T;
+  T.paintAll();
   box.replaceChildren(...GAME_KEYS.map((k) => cards[k].node));
   refreshBar();
 }
 
 // ---------------- feeds ----------------
 const FEED_INFO = {
-  wotd: { title: 'Word of the Day', blurb: 'Posts a new word in a channel on a schedule.' },
-  dailyfact: { title: 'Daily Fact', blurb: 'Posts an interesting fact in a channel on a schedule.' },
+  wotd: { title: 'Word of the Day', blurb: 'Posts a new word in a channel on a schedule.', forms: ['/wotd'] },
+  dailyfact: { title: 'Daily Fact', blurb: 'Posts an interesting fact in a channel on a schedule.', forms: ['/dailyfact'] },
 };
 const FEED_KEYS = Object.keys(FEED_INFO);
 const UNIT_MS = { m: 6e4, h: 36e5, d: 864e5 };
 const parseInterval = (ms) => (ms % 864e5 === 0 ? { amount: ms / 864e5, unit: 'd' } : ms % 36e5 === 0 ? { amount: ms / 36e5, unit: 'h' } : { amount: Math.max(1, Math.round(ms / 6e4)), unit: 'm' });
 
-async function loadFeeds(id) {
+async function loadFeeds(g) {
   const box = $('#pane-feeds'); box.replaceChildren(muted('Loading…'));
-  const r = await call('GET', `/api/guilds/${id}/feeds`);
-  if (curGuild()?.id !== id) return;
+  const r = await call('GET', `/api/guilds/${g.id}/feeds`);
+  if (curGuild()?.id !== g.id) return;
   if (!r.ok) return box.replaceChildren(muted(r.data.error === 'not_in_guild' ? 'The bot is not in this server yet.' : (r.data.error || 'Could not load feeds.')));
-  buildFeeds(box, id, r.data);
+  buildFeeds(box, g, r.data);
 }
 
-function buildFeeds(box, guildId, data) {
-  let channels = data.channels; const { roles, limits, defaults } = data;
+function buildFeeds(box, g, data) {
+  let { channels, roles } = data; const { limits, defaults } = data;
   const snap = { ...data.feeds };
-  const drafts = {}; const cards = {}; const bad = {};
+  const drafts = {}; const cards = {};
   const fromSnap = (k) => {
     const c = snap[k]; const iv = parseInterval(c ? c.intervalMs : 864e5);
     return { enabled: c ? c.enabled : false, channelId: c ? c.channelId : '', roleId: c?.roleId || '', emoji: c ? c.emoji : defaults[k].emoji, amount: iv.amount, unit: iv.unit };
   };
   const ms = (d) => d.amount * UNIT_MS[d.unit];
-  const settingsDiffer = (k) => {
-    const c = snap[k]; const d = drafts[k]; if (!c) return true;
+  const differs = (k) => {
+    const c = snap[k]; const d = drafts[k]; if (!d.enabled) return false;
     return d.channelId !== c.channelId || d.roleId !== (c.roleId || '') || d.emoji.trim() !== c.emoji || ms(d) !== c.intervalMs;
   };
-  const dirtyKey = (k) => { const c = snap[k]; const d = drafts[k]; if (!c) return d.enabled; return d.enabled !== c.enabled || (d.enabled && settingsDiffer(k)); };
   const problem = (k) => {
     const d = drafts[k]; if (!d.enabled) return null;
-    if (!d.channelId) return 'Finish setting this up, or switch it off.';
+    if (!d.channelId) return 'Finish setting this up (Auto configure works), or switch it off.';
     if (!d.emoji.trim()) return 'Add an emoji.';
     const v = ms(d);
     if (!snap[k] || v !== snap[k].intervalMs) {
@@ -520,20 +711,14 @@ function buildFeeds(box, guildId, data) {
     }
     return null;
   };
-  const edit = (k) => { bad[k] = false; paintHint(k); refreshBar(); };
-  function paintHint(k) {
-    const d = drafts[k]; const p = problem(k); const card = cards[k];
-    if (bad[k] && p) card.setHint(p, 'bad');
-    else if (!snap[k] && d.enabled) card.setHint('Not set up yet. Choose a channel, then press Save Changes — or switch it off.', 'warn');
-    else if (snap[k]?.failures > 0) card.setHint('The last post failed. Check the bot can send messages in that channel.', 'warn');
-    else card.setHint('', '');
-    card.setBad(!!(bad[k] && p));
-  }
+  const edit = (k) => T.edit(k);
+  let T;
 
   FEED_KEYS.forEach((k) => {
     const info = FEED_INFO[k];
     drafts[k] = fromSnap(k);
-    const card = featureCard({ title: info.title, desc: info.blurb, onToggle: (on) => { drafts[k].enabled = on; card.setOpen(on); edit(k); } });
+    const feat = g.features?.[k] || { on: true, stage: 'public' };
+    const card = featureCard({ title: info.title, desc: info.blurb, forms: info.forms, beta: feat.stage === 'beta', locked: !feat.on, onToggle: (on) => { drafts[k].enabled = on; card.setOpen(on); edit(k); } });
     cards[k] = card;
     const select = el('select'); select.onchange = () => { drafts[k].channelId = select.value; edit(k); };
     const role = el('select'); role.onchange = () => { drafts[k].roleId = role.value; edit(k); };
@@ -546,61 +731,45 @@ function buildFeeds(box, guildId, data) {
     del.onclick = async () => {
       if (!confirm(`Delete the ${info.title} feed? Its settings are removed. Unsaved changes on this tab are discarded.`)) return;
       del.disabled = true;
-      const r = await call('DELETE', `/api/guilds/${guildId}/feeds/${k}`);
-      if (r.ok) { toast(true, 'Feed deleted.'); loaded.feeds = false; ctls.feeds = null; await loadFeeds(guildId); loaded.feeds = true; refreshBar(); }
+      const r = await call('DELETE', `/api/guilds/${g.id}/feeds/${k}`);
+      if (r.ok) { toast(true, 'Feed deleted.'); snap[k] = null; await T.reload([k]); refreshBar(); }
       else { del.disabled = false; toast(false, r.data.error || `Failed (${r.status}).`); }
     };
     card.panel.append(
       el('div', { className: 'grid' }, field('Channel', select), field('Ping role (optional)', role), field('Emoji', emoji), field('Post every', el('div', { className: 'row' }, amount, unit))),
       el('div', { className: 'foot' }, next, del));
+    card.auto.button.onclick = () => T.auto(k, () => call('POST', `/api/guilds/${g.id}/feeds/${k}/setup`, {})); // the bot creates the channel and the ping role
     card.sync = () => {
       const d = drafts[k]; const c = snap[k];
-      fillChannels(select, channels, { isNew: !c, create: false, value: d.channelId });
+      fillChannels(select, channels, { isNew: !c, value: d.channelId });
       role.replaceChildren(el('option', { value: '', textContent: 'No role ping' }), ...roles.map((r) => el('option', { value: r.id, textContent: `@${r.name}` })));
       if (d.roleId && !roles.some((r) => r.id === d.roleId)) role.append(el('option', { value: d.roleId, textContent: 'Unknown role' }));
       role.value = d.roleId;
       emoji.value = d.emoji; amount.value = Number.isNaN(d.amount) ? '' : d.amount; unit.value = d.unit;
       next.textContent = c && c.enabled ? `Next post: ${new Date(c.nextRunAt).toLocaleString()}` : '';
       del.hidden = !c;
-      card.setOpen(d.enabled); paintHint(k);
+      card.setOpen(d.enabled);
     };
-    card.sync();
   });
 
   async function saveOne(k) {
-    const d = drafts[k]; const c = snap[k];
-    const body = d.enabled ? { enabled: true, channelId: d.channelId, roleId: d.roleId || null, emoji: d.emoji.trim(), intervalMs: ms(d) } : { enabled: false };
-    if (c && d.enabled && !settingsDiffer(k)) return call('PUT', `/api/guilds/${guildId}/feeds/${k}`, { enabled: true });
-    return call('PUT', `/api/guilds/${guildId}/feeds/${k}`, body);
+    const d = drafts[k];
+    const path = `/api/guilds/${g.id}/feeds/${k}`;
+    if (!d.enabled) return call('PUT', path, { enabled: false });
+    return call('PUT', path, { enabled: true, channelId: d.channelId, roleId: d.roleId || null, emoji: d.emoji.trim(), intervalMs: ms(d) });
   }
-  ctls.feeds = {
-    dirty: () => FEED_KEYS.some(dirtyKey),
-    reset() { FEED_KEYS.forEach((k) => { drafts[k] = fromSnap(k); bad[k] = false; cards[k].sync(); }); refreshBar(); },
-    async save() {
-      const blocked = FEED_KEYS.filter((k) => problem(k));
-      if (blocked.length) {
-        blocked.forEach((k) => { bad[k] = true; paintHint(k); cards[k].shake(); });
-        shake(bar); buzz();
-        toast(false, `Finish ${blocked.map((k) => FEED_INFO[k].title).join(' and ')} first: set ${blocked.length > 1 ? 'them' : 'it'} up, or switch ${blocked.length > 1 ? 'them' : 'it'} off.`);
-        return false;
-      }
-      const done = []; let failed = false;
-      for (const k of FEED_KEYS.filter(dirtyKey)) {
-        const r = await saveOne(k);
-        if (!r.ok) { toast(false, `${FEED_INFO[k].title}: ${r.data.error || `Failed (${r.status}).`}`); failed = true; break; }
-        done.push(k);
-      }
-      if (done.length) {
-        const f = await call('GET', `/api/guilds/${guildId}/feeds`);
-        if (curGuild()?.id !== guildId) return !failed;
-        if (!f.ok) { await loadFeeds(guildId); return !failed; }
-        channels = f.data.channels;
-        done.forEach((k) => { snap[k] = f.data.feeds[k] ?? null; drafts[k] = fromSnap(k); bad[k] = false; cards[k].sync(); });
-      }
-      if (!failed) toast(true, 'Changes saved.');
-      return !failed;
+  T = makeTab({
+    keys: FEED_KEYS, titleOf: (k) => FEED_INFO[k].title, snap, drafts, cards, fromSnap, differs, problem, saveOne,
+    hintOf: (k) => (snap[k]?.failures > 0 ? 'The last post failed. Check the bot can send messages in that channel.' : ''),
+    async refetch() {
+      const f = await call('GET', `/api/guilds/${g.id}/feeds`);
+      if (!f.ok) return;
+      channels = f.data.channels; roles = f.data.roles;
+      FEED_KEYS.forEach((k) => { snap[k] = f.data.feeds[k] ?? null; });
     },
-  };
+  });
+  ctls.feeds = T;
+  T.paintAll();
   box.replaceChildren(...FEED_KEYS.map((k) => cards[k].node));
   refreshBar();
 }
@@ -703,7 +872,7 @@ const PANES = ['general', 'games', 'feeds', 'triggers'];
 const LOADERS = {
   general: (g) => loadGeneral(g),
   games: () => loadGames(),
-  feeds: (g) => loadFeeds(g.id),
+  feeds: (g) => loadFeeds(g),
   triggers: (g) => loadTriggers(g.id),
 };
 async function openTab(name) {
@@ -723,7 +892,6 @@ async function loadGuild() {
   try { localStorage.setItem('guild', g?.id || ''); } catch {}
   loaded = {}; ctls = {};
   refreshBar();
-  $('#betaTag').hidden = !g?.beta; // this server has beta access
   const banner = $('#banner'); banner.hidden = true;
   PANES.forEach((k) => { $(`#pane-${k}`).hidden = true; });
   if (!g) {
