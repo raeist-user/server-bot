@@ -10,7 +10,7 @@ const passport = require('passport');
 const { Strategy } = require('passport-discord');
 const mongoose = require('mongoose');
 const path = require('path');
-const { CommandConfig, Feed, QuoteConfig, AfkConfig, CountryGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo } = require('./models');
+const { CommandConfig, Feed, QuoteConfig, AfkConfig, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo } = require('./models');
 const { FEATURES } = require('./registry');
 const { SERVER_ID, DEFAULT_BETA } = require('./botconfig'); // from bot.json
 
@@ -73,7 +73,7 @@ const authed = (req, res, next) => (req.isAuthenticated() ? next() : res.status(
 // ---- games: the website and the bot talk through MongoDB (the bot's host has no open web port) ----
 // Reads come straight from the database. Changes are queued as a WebJob; the bot runs it within a few
 // seconds (re-checking the user is an Administrator) and writes the result back, which we wait for here.
-const GAMES = new Set(['countryguess', 'wordstory', 'wordchain']);
+const GAMES = new Set(['geoguess', 'wordstory', 'wordchain']);
 const TRIGGER_LIMITS = { min: 10, max: 200, default: 100 }; // same as the bot's Word Story limits
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -216,7 +216,7 @@ app.delete('/api/guilds/:id/feeds/:type', authed, adminOnly, knownFeed, wrap(asy
 
 // ---- games: Geography Games, Word Story, Word Chain (Administrator only) ----
 const pick = {
-  countryguess: (c) => c && { enabled: c.enabled !== false, channelId: c.channelId },
+  geoguess: (c) => c && { enabled: c.enabled !== false, channelId: c.channelId },
   wordstory: (c) => c && { enabled: c.enabled !== false, channelId: c.channelId, trigger: c.trigger, consecutive: c.consecutive === true, count: c.count ?? 0 },
   wordchain: (c) => c && { enabled: c.enabled !== false, channelId: c.channelId, repeatingValid: c.repeatingValid === true, consecutive: c.consecutive === true, streak: c.streak ?? 0 },
 };
@@ -225,13 +225,13 @@ app.get('/api/guilds/:id/games', authed, adminOnly, wrap(async (req, res) => {
   const info = await GuildInfo.findOne({ guildId }).lean();
   if (!info) return res.status(404).json({ error: 'not_in_guild' });
   const [cg, ws, wc] = await Promise.all([
-    CountryGuessConfig.findOne({ guildId }).lean(), WordStoryConfig.findOne({ guildId }).lean(), WordChainConfig.findOne({ guildId }).lean(),
+    GeoGuessConfig.findOne({ guildId }).lean(), WordStoryConfig.findOne({ guildId }).lean(), WordChainConfig.findOne({ guildId }).lean(),
   ]);
   res.json({
     guild: { id: guildId, name: info.name },
     channels: info.channels.map((c) => ({ id: c.id, name: c.name, parent: c.parent || null })),
     limits: { trigger: TRIGGER_LIMITS },
-    games: { countryguess: pick.countryguess(cg) ?? null, wordstory: pick.wordstory(ws) ?? null, wordchain: pick.wordchain(wc) ?? null },
+    games: { geoguess: pick.geoguess(cg) ?? null, wordstory: pick.wordstory(ws) ?? null, wordchain: pick.wordchain(wc) ?? null },
   });
 }));
 app.put('/api/guilds/:id/games/:game', authed, jsonOnly, adminOnly, knownGame, featureGate((req) => req.params.game), wrap(async (req, res) => {

@@ -1,4 +1,4 @@
-// SHARED FILE: keep identical in HeavenCloud-bot/src and Render-dashboard/src.
+// SHARED FILE: keep identical in bot/src and dashboard/src.
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -66,11 +66,31 @@ const LogConfig = mongoose.models.LogConfig || mongoose.model('LogConfig', new S
   enabled: { type: Boolean, default: true },
 }));
 
-// Country Guess: the one channel where !countryguess can be played.
-const CountryGuessConfig = mongoose.models.CountryGuessConfig || mongoose.model('CountryGuessConfig', new Schema({
+// Geography Games (/guessgeo): the one channel where !guesscountry / !guessstate / !guesscontinent can be played.
+// intervalSec = the server's default time per round (members can still type their own); null = the built-in default.
+const GeoGuessConfig = mongoose.models.GeoGuessConfig || mongoose.model('GeoGuessConfig', new Schema({
   guildId: { type: String, required: true, unique: true },
   channelId: { type: String, required: true },
   enabled: { type: Boolean, default: true },
+  intervalSec: { type: Number, default: null, min: 5, max: 120 },
+}));
+
+// Bot owner's error collection (/botlog, home server only): one document, key 'main'. Errors from every server end up here.
+const BotLogConfig = mongoose.models.BotLogConfig || mongoose.model('BotLogConfig', new Schema({
+  key: { type: String, required: true, unique: true, default: 'main' },
+  channelId: { type: String, required: true },
+  enabled: { type: Boolean, default: true },
+}));
+
+// Snipe (/snipe): the one channel where !snipe works. With useWebhook the bot replays the deleted message through a webhook
+// in that channel (the sender's name and avatar); webhookId/webhookToken identify that webhook.
+const SnipeConfig = mongoose.models.SnipeConfig || mongoose.model('SnipeConfig', new Schema({
+  guildId: { type: String, required: true, unique: true },
+  channelId: { type: String, required: true },
+  enabled: { type: Boolean, default: true },
+  useWebhook: { type: Boolean, default: false },
+  webhookId: { type: String, default: null },
+  webhookToken: { type: String, default: null },
 }));
 
 // Word Story: the one channel where members write a story word by word. `count` is how many words the batch in progress has (the words themselves are read back from the channel).
@@ -154,7 +174,7 @@ const WebJob = mongoose.models.WebJob || mongoose.model('WebJob', (() => {
   const s = new Schema({
     guildId: { type: String, required: true },
     userId: { type: String, required: true }, // the logged-in website user; the bot re-checks they are an Administrator
-    game: { type: String, enum: ['countryguess', 'wordstory', 'wordchain', 'trigger', 'emoji', 'command', 'feed'], required: true },
+    game: { type: String, enum: ['geoguess', 'countryguess', 'wordstory', 'wordchain', 'trigger', 'emoji', 'command', 'feed'], required: true },
     action: { type: String, enum: ['save', 'toggle', 'delete', 'setup', 'publish'], required: true },
     payload: { type: Schema.Types.Mixed, default: {} },
     status: { type: String, enum: ['pending', 'running', 'done', 'error'], default: 'pending' },
@@ -198,46 +218,6 @@ const CommandConfig = mongoose.models.CommandConfig || mongoose.model('CommandCo
   return s;
 })());
 
-// Debate: one config per server (where topics are posted and how often), plus one row per posted debate.
-const DebateConfig = mongoose.models.DebateConfig || mongoose.model('DebateConfig', new Schema({
-  guildId: { type: String, required: true, unique: true },
-  channelId: { type: String, required: true },
-  enabled: { type: Boolean, default: true },
-  roleId: { type: String, default: null }, // pinged inside each debate thread
-  noRole: { type: Boolean, default: false }, // true = the admin chose "no role": never create or ping one
-  topics: { type: [String], default: ['all'] },
-  regions: { type: [String], default: ['all'] },
-  intervalMs: { type: Number, default: 24 * 3600000 }, // how often a new topic is posted
-  durationMs: { type: Number, default: 12 * 3600000 }, // how long a topic stays open before the conclusion
-  nextRunAt: { type: Date, required: true, index: true },
-  lastPostAt: Date,
-  counter: { type: Number, default: 0 }, // the n in "Topic #n"
-  failures: { type: Number, default: 0 },
-  createdBy: String,
-}));
-const Debate = mongoose.models.Debate || mongoose.model('Debate', (() => {
-  const s = new Schema({
-    guildId: { type: String, required: true, index: true },
-    channelId: String,
-    messageId: String,
-    threadId: { type: String, required: true, index: true },
-    number: Number,
-    question: String,
-    description: String,
-    topic: String,
-    region: String,
-    roleId: { type: String, default: null },
-    status: { type: String, enum: ['open', 'closing', 'closed'], default: 'open' },
-    startedAt: { type: Date, default: Date.now },
-    endsAt: { type: Date, required: true },
-    closingAt: Date,
-    failures: { type: Number, default: 0 },
-    result: { type: Schema.Types.Mixed, default: null }, // { summary, conclusion, ranked, participants } once concluded
-  });
-  s.index({ status: 1, endsAt: 1 });
-  return s;
-})());
-
 // Beta system: which commands are beta (!config) and which servers have beta access (!betaaccess).
 const FeatureFlag = mongoose.models.FeatureFlag || mongoose.model('FeatureFlag', new Schema({
   name: { type: String, required: true, unique: true },
@@ -248,4 +228,4 @@ const BetaGuild = mongoose.models.BetaGuild || mongoose.model('BetaGuild', new S
   addedAt: { type: Date, default: Date.now },
 }));
 
-module.exports = { DebateConfig, Debate, CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, AfkConfig, AfkStatus, CountryGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };
+module.exports = { CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, BotLogConfig, SnipeConfig, AfkConfig, AfkStatus, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };

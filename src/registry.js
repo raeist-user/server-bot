@@ -12,11 +12,11 @@ const FEATURES = [
   { key: 'wiki', name: 'Wiki', forms: ['!wiki', '!w'], group: 'general', channel: true, prefix: ['wiki', 'w'], desc: 'Short Wikipedia summaries.' },
   { key: 'afk', name: 'AFK', forms: ['!afk', '/afk'], group: 'general', channel: true, prefix: ['afk'], slash: ['afk'], desc: 'Let members mark themselves away.' },
   { key: 'emoji', name: 'Emoji', forms: ['!emoji', '/emoji'], group: 'general', channel: true, prefix: ['emoji'], slash: ['emoji'], desc: 'Choose who can add emoji to the server with !emoji.' },
+  { key: 'snipe', name: 'Snipe', forms: ['!snipe', '/snipe'], group: 'general', channel: false, prefix: ['snipe'], slash: ['snipe'], desc: 'Bring back the most recently deleted message in one channel.' },
   { key: 'help', name: 'Help', forms: ['!help'], group: 'general', channel: true, prefix: ['help'], desc: 'The command list.' },
   { key: 'trigger', name: 'Triggers', forms: ['/trigger', '/untrigger'], group: 'general', channel: true, slash: ['trigger', 'untrigger'], desc: 'Your own !commands (role, kick, ban, mute).' },
-  { key: 'countryguess', name: 'Geography Games', forms: ['!guesscountry', '!gc', '!guessstate', '!guesscontinent', '/guessgeo'], group: 'games', channel: false, announce: true, prefix: ['guesscountry', 'gc', 'guessstate', 'guesscontinent', 'countryguess', 'cg'], slash: ['guessgeo'], desc: 'Members guess countries, states and continents in one channel.' },
+  { key: 'geoguess', name: 'Geography Games', forms: ['!guesscountry', '!gc', '!guessstate', '!gs', '!guesscontinent', '!gcont', '/guessgeo'], group: 'games', channel: false, announce: true, prefix: ['guesscountry', 'gc', 'guessstate', 'gs', 'guesscontinent', 'gcont', 'guessgeo', 'gg', 'g'], slash: ['guessgeo'], desc: 'Members guess countries, states and continents in one channel.' },
   { key: 'wordstory', name: 'Word Story', forms: ['/wordstory'], group: 'games', channel: false, announce: true, slash: ['wordstory'], desc: 'Members write a story one word at a time.' },
-  { key: 'debate', name: 'Debate', forms: ['/debate', '!auth'], group: 'games', channel: false, announce: true, prefix: ['auth'], slash: ['debate'], desc: 'Posts debate topics with a thread each, source-checks arguments, then concludes and ranks the top 3.' },
   { key: 'wordchain', name: 'Word Chain', forms: ['/wordchain'], group: 'games', channel: false, announce: true, slash: ['wordchain'], desc: 'Each word starts with the last letter of the previous one.' },
   { key: 'wotd', name: 'Word of the Day', forms: ['/wotd'], group: 'feeds', channel: false, announce: true, slash: ['wotd'], desc: 'Posts a new word in a channel on a schedule.' },
   { key: 'dailyfact', name: 'Daily Fact', forms: ['/dailyfact'], group: 'feeds', channel: false, announce: true, slash: ['dailyfact'], desc: 'Posts an interesting fact in a channel on a schedule.' },
@@ -25,7 +25,7 @@ const FEATURES = [
 ];
 
 const BY_KEY = Object.fromEntries(FEATURES.map((f) => [f.key, f]));
-const PREFIX_KEY = {}; // "q" -> "quote", "cg" -> "countryguess" ...
+const PREFIX_KEY = {}; // "q" -> "quote", "gc" -> "geoguess" ...
 const SLASH_KEY = {}; // "untrigger" -> "trigger"
 for (const f of FEATURES) {
   (f.prefix ?? []).forEach((n) => { PREFIX_KEY[n] = f.key; });
