@@ -572,7 +572,7 @@ const BY_CHANNEL = new Set(['summary', 'quote', 'define', 'wiki', 'afk', 'emoji'
 
 // ---------------- games ----------------
 const GAME_INFO = {
-  countryguess: { title: 'Geography Games', blurb: 'Members guess countries, states and continents in one channel.', forms: ['!guesscountry', '!gc', '!guessstate', '!guesscontinent'] },
+  geoguess: { title: 'Geography Games', blurb: 'Members guess countries, states and continents in one channel.', forms: ['!guesscountry', '!gc', '!guessstate', '!gs', '!guesscontinent', '!gcont'] },
   wordstory: { title: 'Word Story', blurb: 'Members write a story one word at a time.', forms: ['/wordstory'], warn: 'Saving changes restarts the story and posts a setup message in the channel.' },
   wordchain: { title: 'Word Chain', blurb: 'Each word must start with the last letter of the previous one.', forms: ['/wordchain'], warn: 'Saving changes restarts the chain and posts a setup message in the channel.' },
 };
@@ -625,7 +625,7 @@ function buildGames(box, g, data) {
       grid.append(field(`Words per story (${limits.min}-${limits.max})`, trigger));
     }
     if (k === 'wordchain') { rep = check('Allow repeated words'); rep.input.onchange = () => { drafts[k].repeatingValid = rep.input.checked; edit(k); }; checks.append(rep.node); }
-    if (k !== 'countryguess') { cons = check('Same person can write twice in a row'); cons.input.onchange = () => { drafts[k].consecutive = cons.input.checked; edit(k); }; checks.append(cons.node); }
+    if (k !== 'geoguess') { cons = check('Same person can write twice in a row'); cons.input.onchange = () => { drafts[k].consecutive = cons.input.checked; edit(k); }; checks.append(cons.node); }
     card.panel.append(grid, checks);
     card.auto.button.onclick = () => T.auto(k, () => { // no channel = the bot makes one under Activity; the other options you already picked are kept
       const d = drafts[k]; const body = {};
