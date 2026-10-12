@@ -214,7 +214,7 @@ app.delete('/api/guilds/:id/feeds/:type', authed, adminOnly, knownFeed, wrap(asy
   res.json({ ok: true, message: 'Feed deleted.' });
 }));
 
-// ---- games: Country Guess, Word Story, Word Chain (Administrator only) ----
+// ---- games: Geography Games, Word Story, Word Chain (Administrator only) ----
 const pick = {
   countryguess: (c) => c && { enabled: c.enabled !== false, channelId: c.channelId },
   wordstory: (c) => c && { enabled: c.enabled !== false, channelId: c.channelId, trigger: c.trigger, consecutive: c.consecutive === true, count: c.count ?? 0 },

@@ -14,7 +14,7 @@ const FEATURES = [
   { key: 'emoji', name: 'Emoji', forms: ['!emoji', '/emoji'], group: 'general', channel: true, prefix: ['emoji'], slash: ['emoji'], desc: 'Choose who can add emoji to the server with !emoji.' },
   { key: 'help', name: 'Help', forms: ['!help'], group: 'general', channel: true, prefix: ['help'], desc: 'The command list.' },
   { key: 'trigger', name: 'Triggers', forms: ['/trigger', '/untrigger'], group: 'general', channel: true, slash: ['trigger', 'untrigger'], desc: 'Your own !commands (role, kick, ban, mute).' },
-  { key: 'countryguess', name: 'Country Guess', forms: ['!countryguess', '!cg', '/countryguess'], group: 'games', channel: false, announce: true, prefix: ['countryguess', 'cg'], slash: ['countryguess'], desc: 'Members guess countries in one channel.' },
+  { key: 'countryguess', name: 'Geography Games', forms: ['!guesscountry', '!gc', '!guessstate', '!guesscontinent', '/guessgeo'], group: 'games', channel: false, announce: true, prefix: ['guesscountry', 'gc', 'guessstate', 'guesscontinent', 'countryguess', 'cg'], slash: ['guessgeo'], desc: 'Members guess countries, states and continents in one channel.' },
   { key: 'wordstory', name: 'Word Story', forms: ['/wordstory'], group: 'games', channel: false, announce: true, slash: ['wordstory'], desc: 'Members write a story one word at a time.' },
   { key: 'wordchain', name: 'Word Chain', forms: ['/wordchain'], group: 'games', channel: false, announce: true, slash: ['wordchain'], desc: 'Each word starts with the last letter of the previous one.' },
   { key: 'wotd', name: 'Word of the Day', forms: ['/wotd'], group: 'feeds', channel: false, announce: true, slash: ['wotd'], desc: 'Posts a new word in a channel on a schedule.' },
