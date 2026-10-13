@@ -218,6 +218,47 @@ const CommandConfig = mongoose.models.CommandConfig || mongoose.model('CommandCo
   return s;
 })());
 
+// Debate: one config per server (where topics are posted and how often), plus one row per posted debate.
+const DebateConfig = mongoose.models.DebateConfig || mongoose.model('DebateConfig', new Schema({
+  guildId: { type: String, required: true, unique: true },
+  channelId: { type: String, required: true },
+  enabled: { type: Boolean, default: true },
+  roleId: { type: String, default: null }, // pinged inside each debate thread
+  noRole: { type: Boolean, default: false }, // true = the admin chose "no role": never create or ping one
+  topics: { type: [String], default: ['all'] },
+  regions: { type: [String], default: ['all'] },
+  intervalMs: { type: Number, default: 24 * 3600000 }, // how often a new topic is posted
+  durationMs: { type: Number, default: 12 * 3600000 }, // how long a topic stays open before the conclusion
+  nextRunAt: { type: Date, required: true, index: true },
+  lastPostAt: Date,
+  counter: { type: Number, default: 0 }, // the n in "Topic #n"
+  failures: { type: Number, default: 0 },
+  createdBy: String,
+}));
+const Debate = mongoose.models.Debate || mongoose.model('Debate', (() => {
+  const s = new Schema({
+    guildId: { type: String, required: true, index: true },
+    channelId: String,
+    messageId: String,
+    threadId: { type: String, required: true, index: true },
+    number: Number,
+    question: String,
+    description: String,
+    topic: String,
+    region: String,
+    roleId: { type: String, default: null },
+    status: { type: String, enum: ['open', 'closing', 'closed'], default: 'open' },
+    startedAt: { type: Date, default: Date.now },
+    endsAt: { type: Date, required: true },
+    closingAt: Date,
+    failures: { type: Number, default: 0 },
+    quiet: { type: Boolean, default: false }, // someone asked me not to interrupt: I only answer when called
+    result: { type: Schema.Types.Mixed, default: null }, // { summary, conclusion, ranked, participants } once concluded
+  });
+  s.index({ status: 1, endsAt: 1 });
+  return s;
+})());
+
 // Beta system: which commands are beta (!config) and which servers have beta access (!betaaccess).
 const FeatureFlag = mongoose.models.FeatureFlag || mongoose.model('FeatureFlag', new Schema({
   name: { type: String, required: true, unique: true },
@@ -228,4 +269,4 @@ const BetaGuild = mongoose.models.BetaGuild || mongoose.model('BetaGuild', new S
   addedAt: { type: Date, default: Date.now },
 }));
 
-module.exports = { CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, BotLogConfig, SnipeConfig, AfkConfig, AfkStatus, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };
+module.exports = { DebateConfig, Debate, CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, BotLogConfig, SnipeConfig, AfkConfig, AfkStatus, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };
