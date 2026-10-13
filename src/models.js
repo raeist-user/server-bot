@@ -57,6 +57,9 @@ const BumpConfig = mongoose.models.BumpConfig || mongoose.model('BumpConfig', ne
   message: { type: String, default: '${roleping} you can now ${bumpping}' },
   intervalMs: { type: Number, default: 2 * 3600000 },
   remindAt: { type: Date, default: null, index: true },
+  embedDelete: { type: Boolean, default: true }, // remove the embed of DISBOARD's "Bump done" message (the message and my reaction stay)
+  reminderChannelId: { type: String, default: null }, // my last reminder: deleted when the next bump succeeds
+  reminderMessageId: { type: String, default: null },
 }));
 
 // Error log channel: one per server.
