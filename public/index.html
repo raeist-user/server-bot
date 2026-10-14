@@ -82,6 +82,24 @@ a.menu-item.danger{color:var(--err)}
 .seg button{border:0;border-radius:0;background:var(--field);padding:.38rem .7rem}.seg button.sel{background:var(--pri);color:#fff}
 .item{display:flex;align-items:center;gap:.6rem;padding:.45rem .8rem;border:1px solid var(--line);background:var(--panel);border-radius:8px;margin-bottom:.4rem}
 .tag{font-family:monospace;color:#9db4ff}
+.ed{position:relative;display:flex;height:min(62vh,560px);border:1px solid var(--line2);border-radius:8px;background:var(--field);overflow:hidden;font:13px/20px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.ed:focus-within{border-color:var(--pri)}
+.ed .marks{position:absolute;left:0;right:0;top:0;height:100%;overflow:hidden;pointer-events:none}
+.ed .marks>div{position:absolute;left:0;right:0}
+.ed .mark{height:20px}.ed .mark.err{background:#ff7b7b1f;box-shadow:inset 3px 0 var(--err)}.ed .mark.warn{background:#d9b8581f;box-shadow:inset 3px 0 var(--warn)}.ed .mark.hit{background:#4f6bff40;box-shadow:inset 3px 0 var(--pri)}
+.ed .mark span{position:absolute;right:.7rem;top:0;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem;opacity:.85}.ed .mark.err span{color:var(--err)}.ed .mark.warn span{color:var(--warn)}
+.ed .gut{position:relative;flex:none;width:3.2rem;margin:0;padding:8px .5rem 28px 0;overflow:hidden;text-align:right;color:var(--mute);border-right:1px solid var(--line);user-select:none;font:inherit}
+.ed textarea{position:relative;flex:1;min-width:0;height:100%;margin:0;padding:8px 10px 28px;border:0;border-radius:0;background:transparent;resize:none;white-space:pre;overflow:auto;tab-size:2;font:inherit;line-height:20px;outline:none}
+.ed.plain{height:50vh}.ed.plain .gut,.ed.plain .marks{display:none}
+.edmeta{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin:.35rem 0 .8rem}.edmeta .bad{color:var(--err)}
+.errhead{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.5rem}
+.errit{display:block;width:100%;text-align:left;margin:0 0 .45rem;padding:.45rem .6rem;border:1px solid var(--line);border-left:3px solid var(--err);border-radius:6px;background:var(--field);cursor:pointer}
+.errit.warning{border-left-color:var(--warn)}.errit:hover,.errit:focus-visible{border-color:var(--pri);outline:none}
+.errit .top{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.78rem;color:var(--mute)}
+.errit .msg{margin:.25rem 0}
+.errit pre{margin:0;padding:.25rem .45rem;overflow-x:auto;white-space:pre;border-radius:4px;background:var(--bg);font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.badge.bad{background:#3a1f1f;color:var(--err)}.badge.warn{background:#3a3220;color:var(--warn)}
+.tabs .badge.cnt{left:auto;right:.1rem;transform:none;background:#4a2020;color:var(--err)}
 .prefix{display:flex;align-items:center;border:1px solid var(--line2);border-radius:6px;background:var(--field)}
 .prefix>span{padding:0 .1rem 0 .65rem;color:var(--mute);font-family:monospace}
 .prefix input{border:0;background:none;padding-left:.2rem}
@@ -156,9 +174,8 @@ details.more{margin-top:.5rem}details.more>summary{cursor:pointer;color:var(--mu
     <section id="pane-games" hidden></section>
     <section id="pane-feeds" hidden></section>
     <section id="pane-triggers" hidden>
-      <p class="muted small" style="margin-top:0">Your own <code>!commands</code> for this server. Same as <code>/trigger</code> in Discord.</p>
-      <div id="trigList"></div>
-      <details class="card" id="trigNew"><summary id="trigTitle">New trigger</summary><div id="trigForm"></div></details>
+      <p class="muted small" style="margin-top:0">Your own <code>!commands</code> and message triggers, written in YAML. Switch one on or off in Discord with <code>/triggers</code>. <a id="trigDocs" href="docs/TRIGGERS.md" target="_blank" rel="noopener">Docs</a></p>
+      <div id="trigBody"></div>
     </section>
   </div>
 </main>
@@ -529,7 +546,7 @@ function buildGeneral(box, g, data) {
       card.panel.append(def.node, el('div', { className: 'field', style: 'margin-top:.7rem' }, el('span', { textContent: 'Roles that can use it' }), roleChips), el('div', { className: 'field', style: 'margin-top:.4rem' }, el('span', { textContent: 'People that can use it' }), userChips, userInput));
       syncs.push(() => { def.input.checked = d().s.defaultPerm; paintUsers(); roleBtns.forEach(([id, b]) => b.classList.toggle('sel', d().s.roleIds.includes(id))); });
     }
-    if (k === 'trigger') card.panel.append(muted('Make and edit your own commands in the Triggers tab.'));
+    if (k === 'trigger') card.panel.append(muted('Write and edit your own commands in the Triggers tab (switch one on or off with /triggers).'));
 
     // Channel rules: only commands members type can be limited to channels.
     let rules = null;
@@ -774,97 +791,167 @@ function buildFeeds(box, g, data) {
   refreshBar();
 }
 
-// ---------------- triggers (beta) ----------------
-const VARS = ['${authormention}', '${authername}', '${targetmention}', '${targetname}', '${rolename}', '${rolemention}'];
-let trig = null; // { guild, roles, actions, max, triggers }
+// ---------------- triggers (beta): one YAML text per server ----------------
+const TRIGGER_MAX_BYTES = 20 * 1024;
+const LH = 20; const PAD = 8; // editor line height and top padding, in px (same as the CSS)
+let trig = null; // { id, ta, saved, errs, filter, hit, ... }
 
-function describe(t) {
-  const a = trig.actions.find((x) => x.value === t.action);
-  const role = trig.roles.find((r) => r.id === t.roleId);
-  const action = a ? `${a.label} on ${t.applyTo === 'author' ? 'author' : 'target'}${role ? ` · @${role.name}` : ''}${t.action === 'mute' ? ` · ${short(t.durationMs)}` : ''}` : `Response only${role ? ` · @${role.name}` : ''}`;
-  const resp = t.respondType === 'message' ? `says “${(t.respond || '').slice(0, 60)}”` : `reacts ${t.respond || ''}`;
-  return `${action} → ${resp}`;
+const ago = (t) => { const s = Math.max(0, (Date.now() - new Date(t).getTime()) / 1000); return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)} min ago` : s < 86400 ? `${Math.floor(s / 3600)} h ago` : `${Math.floor(s / 86400)} d ago`; };
+
+/** The line an error belongs to in the text as it is now: the same line if its text still matches, else the nearest line with that exact text. */
+function errLine(e) {
+  const lines = trig.ta.value.split('\n');
+  if (lines[e.line - 1] === e.lineText) return e.line;
+  let best = 0;
+  if (e.lineText.trim()) lines.forEach((l, i) => { if (l === e.lineText && (!best || Math.abs(i + 1 - e.line) < Math.abs(best - e.line))) best = i + 1; });
+  return best || Math.min(Math.max(1, e.line), lines.length);
 }
 
-function renderTriggerForm(edit) {
-  const box = $('#trigForm'); box.replaceChildren();
-  const e = edit || {};
-  $('#trigTitle').textContent = edit ? `Editing !${edit.name}` : 'New trigger';
-  $('#trigNew').open = !!edit;
-  const name = el('input', { type: 'text', placeholder: 'hire', maxLength: 33, value: e.name || '' });
-  const action = el('select'); action.append(el('option', { value: '', textContent: 'Nothing (just respond)' }));
-  trig.actions.forEach((a) => action.append(el('option', { value: a.value, textContent: a.label }))); action.value = e.action || '';
-  const applyTo = seg([['target', 'Target (@mention)'], ['author', 'Author']], e.applyTo || 'target');
-  const role = el('select'); role.append(el('option', { value: '', textContent: 'No role' }));
-  trig.roles.forEach((r) => role.append(el('option', { value: r.id, textContent: `@${r.name}${r.editable ? '' : ' (bot cannot manage)'}` }))); role.value = e.roleId || '';
-  const duration = el('input', { type: 'text', placeholder: '10m, 2h, 1d', value: e.action === 'mute' ? short(e.durationMs) : '' });
-  const rtype = seg([['reaction', 'Reaction'], ['message', 'Message']], e.respondType || 'reaction', () => sync());
-  const respond = el('textarea', { value: e.respond || '' });
-  const vars = el('div', { className: 'vars' }, ...VARS.map((v) => el('button', { type: 'button', textContent: v, onclick: () => { respond.setRangeText(v, respond.selectionStart ?? respond.value.length, respond.selectionEnd ?? respond.value.length, 'end'); respond.focus(); } })));
-  const inReply = check('Reply to the message that ran it', e.inReply !== false);
-  const delAfter = el('input', { type: 'number', min: 0, max: 60, value: e.deleteAfter ?? 0 });
-  const delPrompt = check('Delete the message that ran the command', !!e.deletePrompt);
-  const delPromptAfter = el('input', { type: 'number', min: 0, max: 60, value: e.deletePromptAfter ?? 0 });
+function setTrigBadge(n) {
+  const g = curGuild(); if (g) g.triggerErrors = n;
+  const b = document.querySelector('#tabs button[data-tab="triggers"]'); if (!b) return;
+  b.querySelector('.badge.cnt')?.remove();
+  if (n > 0) b.append(el('span', { className: 'badge cnt', title: `${n} trigger error${n === 1 ? '' : 's'}`, textContent: n > 99 ? '99+' : String(n) }));
+}
 
-  const fApply = field('Do it to', applyTo.node);
-  const fRole = field('Role', role);
-  const fDur = field('Mute for (1m - 28d)', duration);
-  const fPromptAfter = field('Delete it after (seconds, 0 = now)', delPromptAfter);
-  const sync = () => {
-    const a = trig.actions.find((x) => x.value === action.value);
-    const msg = rtype.get() === 'message';
-    fApply.hidden = !action.value; fDur.hidden = action.value !== 'mute';
-    fRole.firstChild.textContent = a?.needsRole ? 'Role (required)' : 'Role (optional, for ${rolename})';
-    respond.rows = msg ? 3 : 1;
-    respond.placeholder = msg ? 'What I say. Click a variable below to insert it.' : 'An emoji, like ✅';
-    vars.hidden = !msg; inReply.node.hidden = !msg; fPromptAfter.hidden = !delPrompt.input.checked;
-  };
-  action.onchange = sync; delPrompt.input.onchange = sync;
+function syncEditor() {
+  const t = trig; if (!t.gut) return;
+  t.gut.scrollTop = t.ta.scrollTop;
+  t.marksIn.style.transform = `translateY(${-t.ta.scrollTop}px)`;
+}
+function renderGutter() {
+  const t = trig; if (!t.gut) return;
+  const n = t.ta.value.split('\n').length;
+  if (n !== t.lineCount) { t.gut.textContent = Array.from({ length: n }, (_, i) => i + 1).join('\n'); t.lineCount = n; }
+}
+/** Tints the lines that have problems (and the one just jumped to). Warnings show their message at the end of short lines. */
+function renderMarks() {
+  const t = trig; if (!t.gut) return;
+  const rows = [];
+  const seen = new Map();
+  for (const e of t.errs) { const n = errLine(e); if (!seen.has(n) || e.severity === 'error') seen.set(n, e); }
+  for (const [n, e] of seen) {
+    const short = (t.ta.value.split('\n')[n - 1] || '').length < 55;
+    rows.push(el('div', { className: `mark ${e.severity === 'error' ? 'err' : 'warn'}`, style: `top:${PAD + (n - 1) * LH}px` }, short && el('span', { textContent: e.message })));
+  }
+  if (t.hit) rows.push(el('div', { className: 'mark hit', style: `top:${PAD + (t.hit - 1) * LH}px` }));
+  t.marksIn.replaceChildren(...rows);
+  syncEditor();
+}
+function renderMeta() {
+  const t = trig;
+  const bytes = new Blob([t.ta.value]).size;
+  t.meta.replaceChildren(
+    el('span', { className: `muted small${bytes > TRIGGER_MAX_BYTES ? ' bad' : ''}`, textContent: `${(bytes / 1024).toFixed(1)} of ${TRIGGER_MAX_BYTES / 1024} KB` }),
+    el('span', { className: 'muted small', textContent: `${t.ta.value.split('\n').length} lines` }),
+    el('span', { className: 'muted small', textContent: 'Ctrl+S saves. In the editor, Esc then Tab moves focus away.' }));
+}
 
-  const save = el('button', { className: 'primary', textContent: edit ? 'Update trigger' : 'Create trigger' });
-  save.onclick = async () => {
-    const body = {
-      command: name.value.trim().replace(/^!/, ''), action: action.value || null, applyTo: applyTo.get(), roleId: role.value || null,
-      duration: action.value === 'mute' ? duration.value.trim() || null : null,
-      respondType: rtype.get(), respond: respond.value.trim(),
-      inReply: inReply.input.checked, deleteAfter: parseInt(delAfter.value, 10) || 0,
-      deletePrompt: delPrompt.input.checked, deletePromptAfter: parseInt(delPromptAfter.value, 10) || 0,
-    };
-    save.disabled = true;
-    const r = await call('PUT', `/api/guilds/${trig.guild.id}/triggers`, body);
-    save.disabled = false;
-    if (r.ok) { toast(true, r.data.message || 'Saved.'); await loadTriggers(trig.guild.id); } else toast(false, r.data.error || `Failed (${r.status}).`);
-  };
-  const more = el('details', { className: 'more' }, el('summary', { textContent: 'More options' }),
-    el('div', { className: 'grid' }, field('Remove my response after (seconds, 0 = keep)', delAfter), fPromptAfter),
-    el('div', { className: 'checks' }, inReply.node, delPrompt.node));
-  box.append(
-    el('div', { className: 'grid' }, field('Command', el('div', { className: 'prefix' }, el('span', { textContent: '!' }), name)), field('Action', action), fApply, fRole, fDur),
-    el('div', { className: 'grid' }, field('Response', rtype.node)),
-    respond, vars, more,
-    el('div', { className: 'foot' }, save, el('button', { type: 'button', textContent: 'Clear', onclick: () => renderTriggerForm(null) })));
-  sync();
+/** Selects a line, scrolls it into view and highlights it until the next edit. */
+function gotoLine(n) {
+  const t = trig; const lines = t.ta.value.split('\n');
+  n = Math.min(Math.max(1, n), lines.length);
+  let start = 0; for (let i = 0; i < n - 1; i++) start += lines[i].length + 1;
+  t.ed.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  t.ta.focus({ preventScroll: true });
+  t.ta.setSelectionRange(start, start + lines[n - 1].length);
+  t.ta.scrollTop = Math.max(0, PAD + (n - 1) * LH - t.ta.clientHeight / 2);
+  t.hit = n; renderMarks();
+}
+
+function onEditorKey(ev) {
+  const t = trig; const ta = t.ta;
+  if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); $('#sbSave').click(); return; }
+  if (ev.key === 'Escape') { t.free = true; return; }
+  const free = t.free; t.free = false;
+  const put = (text) => { if (!document.execCommand('insertText', false, text)) ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end'); };
+  if (ev.key === 'Tab' && !free && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+    ev.preventDefault();
+    const { selectionStart: a, selectionEnd: b, value } = ta;
+    if (a === b && !ev.shiftKey) return put('  ');
+    const from = value.lastIndexOf('\n', a - 1) + 1; // whole lines
+    const to = b > a && value[b - 1] === '\n' ? b - 1 : b;
+    const block = value.slice(from, (value.indexOf('\n', to) + 1 || value.length + 1) - 1);
+    const out = block.split('\n').map((l) => (ev.shiftKey ? l.replace(/^ {1,2}/, '') : `  ${l}`)).join('\n');
+    ta.setSelectionRange(from, from + block.length);
+    put(out);
+    ta.setSelectionRange(from, from + out.length);
+  } else if (ev.key === 'Enter' && !ev.shiftKey && !ev.ctrlKey && !ev.metaKey && ta.selectionStart === ta.selectionEnd) {
+    const before = ta.value.slice(0, ta.selectionStart);
+    const line = before.slice(before.lastIndexOf('\n') + 1);
+    ev.preventDefault();
+    put(`\n${/^ */.exec(line)[0]}${/:\s*$/.test(line) && !/^\s*#/.test(line) ? '  ' : ''}`); // keep the indent; one level deeper after "key:"
+  }
+}
+
+function renderErrors() {
+  const t = trig;
+  const shown = t.filter === 'all' ? t.errs : t.errs.filter((e) => e.source === t.filter);
+  const count = (src) => t.errs.filter((e) => src === 'all' || e.source === src).length;
+  const seg = el('div', { className: 'seg' }, ...[['all', 'All'], ['save', 'Save'], ['runtime', 'Runtime']].map(([k, label]) =>
+    el('button', { type: 'button', className: t.filter === k ? 'sel' : '', textContent: `${label} ${count(k)}`, onclick: () => { t.filter = k; renderErrors(); } })));
+  const bad = t.errs.filter((e) => e.severity === 'error').length;
+  const clear = el('button', { type: 'button', className: 'ghost', textContent: 'Clear', title: t.filter === 'all' ? 'Remove every logged problem' : `Remove the ${t.filter} problems`, disabled: !shown.length, onclick: async () => {
+    clear.disabled = true;
+    const r = await call('DELETE', `/api/guilds/${t.id}/triggers/errors${t.filter === 'all' ? '' : `?source=${t.filter}`}`);
+    if (r.ok) await loadErrors(); else { clear.disabled = false; toast(false, r.data.error || `Failed (${r.status}).`); }
+  } });
+  const refresh = el('button', { type: 'button', className: 'ghost', textContent: 'Refresh', onclick: () => loadErrors() });
+  t.errBox.replaceChildren(
+    el('div', { className: 'errhead' }, el('strong', { textContent: 'Errors' }), bad ? el('span', { className: 'badge bad', textContent: `${bad} error${bad === 1 ? '' : 's'}` }) : null,
+      t.errs.length > bad ? el('span', { className: 'badge warn', textContent: `${t.errs.length - bad} warning${t.errs.length - bad === 1 ? '' : 's'}` }) : null,
+      el('span', { className: 'grow' }), seg, refresh, clear),
+    el('p', { className: 'muted small', style: 'margin:0 0 .5rem', textContent: 'Save = found when you saved. Runtime = happened while a trigger ran. Click one to jump to its line.' }),
+    ...(shown.length ? shown.map((e) => el('button', { type: 'button', className: `errit ${e.severity}`, onclick: () => gotoLine(errLine(e)) },
+      el('div', { className: 'top' }, el('b', { textContent: e.severity === 'error' ? 'Error' : 'Warning' }), el('span', { textContent: `line ${errLine(e)}` }),
+        e.trigger ? el('span', { className: 'tag', textContent: e.trigger }) : null, el('span', { className: 'badge', textContent: e.source }),
+        e.count > 1 ? el('span', { className: 'badge', title: 'Times this happened', textContent: `\u00d7${e.count}` }) : null,
+        el('span', { title: new Date(e.at).toLocaleString(), textContent: ago(e.at) })),
+      el('div', { className: 'msg', textContent: e.message }),
+      el('pre', { textContent: e.lineText || '(empty line)' }))) : [el('p', { className: 'muted small', style: 'margin:0', textContent: 'Nothing logged.' })]));
+}
+
+async function loadErrors() {
+  const r = await call('GET', `/api/guilds/${trig.id}/triggers/errors`);
+  if (!r.ok) return toast(false, r.data.error || `Failed (${r.status}).`);
+  trig.errs = r.data.errors;
+  setTrigBadge(trig.errs.filter((e) => e.severity === 'error').length);
+  renderErrors(); renderMarks();
 }
 
 async function loadTriggers(id) {
-  const list = $('#trigList');
+  const box = $('#trigBody');
   const r = await call('GET', `/api/guilds/${id}/triggers`);
-  if (curGuild()?.id !== id) return;
-  if (!r.ok) { list.replaceChildren(el('p', { className: 'err small', style: 'color:var(--err)', textContent: r.data.error === 'not_in_guild' ? 'The bot is not in this server yet.' : (r.data.error || 'Could not load triggers.') })); $('#trigForm').replaceChildren(); return; }
-  trig = r.data;
-  list.replaceChildren(el('div', { className: 'muted small', style: 'margin:.2rem 0 .4rem', textContent: `${trig.triggers.length} of ${trig.max} used` }),
-    ...(trig.triggers.length ? trig.triggers.map((t) => {
-      const del = el('button', { className: 'ghost danger', textContent: 'Delete' });
-      del.onclick = async () => {
-        if (!confirm(`Delete !${t.name}?`)) return;
-        del.disabled = true;
-        const d = await call('DELETE', `/api/guilds/${id}/triggers/${encodeURIComponent(t.name)}`);
-        if (d.ok) { toast(true, d.data.message || 'Deleted.'); loadTriggers(id); } else { del.disabled = false; toast(false, d.data.error || 'Failed.'); }
-      };
-      return el('div', { className: 'item' }, el('b', { className: 'tag', textContent: `!${t.name}` }), el('span', { className: 'muted small grow', textContent: describe(t) }),
-        el('button', { className: 'ghost', textContent: 'Edit', onclick: () => { renderTriggerForm(t); $('#trigNew').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }), del);
-    }) : [el('p', { className: 'muted small', textContent: 'No triggers yet. Create your first one below.' })]));
-  renderTriggerForm(null);
+  if (!r.ok) { box.replaceChildren(el('p', { className: 'small', style: 'color:var(--err)', textContent: r.data.error === 'not_in_guild' ? 'The bot is not in this server yet.' : (r.data.error || `Failed (${r.status}).`) })); return; }
+  const plain = matchMedia('(pointer: coarse)').matches || innerWidth < 640; // phones: a normal text box, no line numbers
+  const ta = el('textarea', { value: r.data.yaml, spellcheck: false, wrap: 'off', autocomplete: 'off', autocapitalize: 'off', ariaLabel: 'Trigger YAML' });
+  ta.setAttribute('autocorrect', 'off');
+  trig = { id, ta, saved: r.data.yaml, errs: r.data.errors, filter: 'all', hit: null, free: false, lineCount: 0, plain };
+  trig.gut = plain ? null : el('pre', { className: 'gut', ariaHidden: 'true' });
+  trig.marksIn = el('div', {});
+  trig.ed = el('div', { className: `ed${plain ? ' plain' : ''}` }, el('div', { className: 'marks' }, trig.marksIn), trig.gut, ta);
+  trig.meta = el('div', { className: 'edmeta' });
+  trig.errBox = el('div', { className: 'card' });
+  box.replaceChildren(trig.ed, trig.meta, trig.errBox);
+  let timer;
+  ta.addEventListener('input', () => { trig.hit = null; renderGutter(); renderMeta(); refreshBar(); clearTimeout(timer); timer = setTimeout(renderMarks, 150); });
+  ta.addEventListener('scroll', syncEditor);
+  ta.addEventListener('keydown', onEditorKey);
+  ta.addEventListener('mousedown', () => { if (trig.hit) { trig.hit = null; renderMarks(); } });
+  renderGutter(); renderMeta(); renderErrors(); renderMarks();
+  setTrigBadge(trig.errs.filter((e) => e.severity === 'error').length);
+  ctls.triggers = {
+    dirty: () => trig.ta.value !== trig.saved,
+    reset: () => { trig.ta.value = trig.saved; trig.hit = null; renderGutter(); renderMeta(); renderMarks(); refreshBar(); },
+    save: async () => {
+      const body = trig.ta.value;
+      const s = await call('PUT', `/api/guilds/${trig.id}/triggers`, { yaml: body });
+      if (!s.ok) return toast(false, s.data.error || `Failed (${s.status}).`);
+      trig.saved = body;
+      toast(!(s.data.errors || []).some((e) => e.severity === 'error'), s.data.message || 'Saved.');
+      await loadErrors(); // the saved findings now show inline (tinted lines) and in the list
+    },
+  };
 }
 
 // ---------------- tabs ----------------
@@ -902,7 +989,7 @@ async function loadGuild() {
   }
   const tabs = [['general', 'General', false], ['games', 'Games', false], ['feeds', 'Feeds', false]];
   if (g.features?.trigger?.on) tabs.push(['triggers', 'Triggers', g.features.trigger.stage === 'beta']);
-  $('#tabs').replaceChildren(...tabs.map(([k, label, beta]) => el('button', { type: 'button', dataset: { tab: k }, onclick: () => openTab(k) }, label, beta && el('span', { className: 'badge beta', textContent: 'BETA' }))));
+  $('#tabs').replaceChildren(...tabs.map(([k, label, beta]) => el('button', { type: 'button', dataset: { tab: k }, onclick: () => openTab(k) }, label, beta && el('span', { className: 'badge beta', textContent: 'BETA' }), k === 'triggers' && g.triggerErrors > 0 && el('span', { className: 'badge cnt', title: `${g.triggerErrors} trigger error${g.triggerErrors === 1 ? '' : 's'}`, textContent: g.triggerErrors > 99 ? '99+' : String(g.triggerErrors) }))));
   let want = 'general'; try { want = localStorage.getItem('tab') || 'general'; } catch {}
   if (want === 'emoji') want = 'general';
   tab = null;
