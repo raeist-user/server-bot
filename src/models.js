@@ -141,7 +141,7 @@ const afkStatusSchema = new Schema({
 afkStatusSchema.index({ guildId: 1, userId: 1 }, { unique: true });
 const AfkStatus = mongoose.models.AfkStatus || mongoose.model('AfkStatus', afkStatusSchema);
 
-// Triggers: custom "!command"s built with /trigger. One row per command per server.
+// Triggers (old format, one row per command): kept so the migration can read it and a rollback finds its data. The bot and website no longer use it.
 const TriggerConfig = mongoose.models.TriggerConfig || mongoose.model('TriggerConfig', (() => {
   const s = new Schema({
     guildId: { type: String, required: true },
@@ -160,6 +160,34 @@ const TriggerConfig = mongoose.models.TriggerConfig || mongoose.model('TriggerCo
     createdBy: String,
   });
   s.index({ guildId: 1, name: 1 }, { unique: true });
+  return s;
+})());
+
+// Triggers: every server's custom triggers as ONE YAML text, edited in the dashboard. This is the single source of truth.
+const TriggerYaml = mongoose.models.TriggerYaml || mongoose.model('TriggerYaml', new Schema({
+  guildId: { type: String, required: true, unique: true },
+  yaml: { type: String, default: '', maxlength: 20480 }, // about 20 KB
+  updatedBy: String,
+  updatedAt: { type: Date, default: Date.now },
+}));
+
+// Problems found in a server's trigger YAML: when it was saved ("save") or while a trigger ran ("runtime").
+// Same problem again = the same row with a higher count. The bot keeps the 50 newest per server; rows expire after 30 days.
+const TriggerError = mongoose.models.TriggerError || mongoose.model('TriggerError', (() => {
+  const s = new Schema({
+    guildId: { type: String, required: true },
+    source: { type: String, enum: ['save', 'runtime'], required: true },
+    severity: { type: String, enum: ['error', 'warning'], default: 'error' },
+    line: { type: Number, default: 1 },
+    column: { type: Number, default: 1 },
+    lineText: { type: String, default: '' }, // the exact YAML line it points at
+    trigger: { type: String, default: null },
+    message: { type: String, required: true },
+    count: { type: Number, default: 1 },
+    at: { type: Date, default: Date.now, expires: 30 * 86400 }, // time of the latest occurrence
+  });
+  s.index({ guildId: 1, at: -1 });
+  s.index({ guildId: 1, source: 1, trigger: 1, message: 1 });
   return s;
 })());
 
@@ -194,7 +222,7 @@ const GuildInfo = mongoose.models.GuildInfo || mongoose.model('GuildInfo', new S
   guildId: { type: String, required: true, unique: true },
   name: { type: String, default: '' },
   channels: { type: [{ _id: false, id: String, name: String, parent: String }], default: [] },
-  roles: { type: [{ _id: false, id: String, name: String, color: String, editable: Boolean }], default: [] }, // for the website's trigger form
+  roles: { type: [{ _id: false, id: String, name: String, color: String, editable: Boolean }], default: [] }, // for the website
   updatedAt: { type: Date, default: Date.now },
 }));
 
@@ -272,4 +300,4 @@ const BetaGuild = mongoose.models.BetaGuild || mongoose.model('BetaGuild', new S
   addedAt: { type: Date, default: Date.now },
 }));
 
-module.exports = { DebateConfig, Debate, CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, BotLogConfig, SnipeConfig, AfkConfig, AfkStatus, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig };
+module.exports = { DebateConfig, Debate, CommandConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo, BlockedGuild, Feed, Used, QuoteConfig, Quote, BumpConfig, LogConfig, BotLogConfig, SnipeConfig, AfkConfig, AfkStatus, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig, TriggerYaml, TriggerError };

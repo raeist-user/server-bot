@@ -10,7 +10,8 @@ const passport = require('passport');
 const { Strategy } = require('passport-discord');
 const mongoose = require('mongoose');
 const path = require('path');
-const { CommandConfig, Feed, QuoteConfig, AfkConfig, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerConfig, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo } = require('./models');
+const { CommandConfig, Feed, QuoteConfig, AfkConfig, GeoGuessConfig, WordStoryConfig, WordChainConfig, TriggerYaml, TriggerError, EmojiConfig, FeatureFlag, BetaGuild, WebJob, GuildInfo } = require('./models');
+const { DEFAULT_YAML, MAX_YAML_BYTES, parseTriggers } = require('./triggerparse');
 const { FEATURES } = require('./registry');
 const { SERVER_ID, DEFAULT_BETA } = require('./botconfig'); // from bot.json
 
@@ -112,13 +113,15 @@ async function listGuilds(user) {
   const list = user.guilds.filter(isAdminOf);
   if (!list.length) return [];
   const ids = list.map((g) => g.id);
-  const [here, acc] = await Promise.all([
+  const [here, acc, bad] = await Promise.all([
     GuildInfo.find({ guildId: { $in: ids } }, { guildId: 1 }).lean(),
     loadAccess(ids), // beta is looked up on every load, so changes apply on the next visit
+    TriggerError.aggregate([{ $match: { guildId: { $in: ids }, severity: 'error' } }, { $group: { _id: '$guildId', n: { $sum: 1 } } }]), // for the badge on the Triggers tab
   ]);
+  const triggerErrors = new Map(bad.map((b) => [b._id, b.n]));
   const inSet = new Set(here.map((x) => x.guildId));
   return list.filter((g) => inSet.has(g.id)).map((g) => ({
-    id: g.id, name: g.name, icon: iconUrl(g), beta: acc.hasBeta(g.id),
+    id: g.id, name: g.name, icon: iconUrl(g), beta: acc.hasBeta(g.id), triggerErrors: triggerErrors.get(g.id) ?? 0,
     // per command: its stage (beta/public) and whether this server may use it right now
     features: Object.fromEntries(FEATURES.map((f) => [f.key, { stage: acc.stage(f.key), on: acc.can(f.key, g.id) }])),
   }));
@@ -260,43 +263,33 @@ const triggerGate = wrap(async (req, res, next) => {
   return acc.can('trigger', req.params.id) ? next() : res.status(403).json({ error: 'Triggers are not available for this server yet.' });
 });
 
-// ---- triggers (beta): custom !commands, per server, Administrator only ----
-const TRIGGER_ACTIONS = [
-  { value: 'role_add', label: 'Role add', needsRole: true }, { value: 'role_remove', label: 'Role remove', needsRole: true },
-  { value: 'kick', label: 'Kick' }, { value: 'ban', label: 'Ban' }, { value: 'mute', label: 'Mute' },
-];
+// ---- triggers (beta): custom !commands as one YAML text per server, Administrator only ----
+// The YAML is saved by the bot (it checks it again and writes the problems it finds to TriggerError). The website only reads them.
+const errorRow = (e) => ({ source: e.source, severity: e.severity ?? 'error', line: e.line, column: e.column, lineText: e.lineText ?? '', trigger: e.trigger ?? null, message: e.message, count: e.count ?? 1, at: e.at });
+const errorFilter = (req) => ({ guildId: req.params.id, ...(['save', 'runtime'].includes(req.query.source) ? { source: req.query.source } : {}) });
 app.get('/api/guilds/:id/triggers', authed, adminOnly, triggerGate, wrap(async (req, res) => {
   const guildId = req.params.id;
-  const info = await GuildInfo.findOne({ guildId }).lean();
-  if (!info) return res.status(404).json({ error: 'not_in_guild' });
-  const rows = await TriggerConfig.find({ guildId }, { _id: 0, __v: 0 }).sort({ name: 1 }).lean();
-  res.json({
-    guild: { id: guildId, name: info.name },
-    roles: info.roles.map((r) => ({ id: r.id, name: r.name, color: r.color, editable: r.editable })),
-    actions: TRIGGER_ACTIONS, max: 20, triggers: rows,
-  });
+  if (!(await GuildInfo.exists({ guildId }))) return res.status(404).json({ error: 'not_in_guild' });
+  const [row, errors] = await Promise.all([TriggerYaml.findOne({ guildId }).lean(), TriggerError.find({ guildId }).sort({ at: -1 }).limit(50).lean()]);
+  res.json({ yaml: row ? row.yaml : DEFAULT_YAML, errors: errors.map(errorRow) }); // a server that never saved starts with the examples
 }));
 app.put('/api/guilds/:id/triggers', authed, jsonOnly, adminOnly, triggerGate, wrap(async (req, res) => {
   if (Date.now() - (recent.get(`t:${req.user.id}:${req.params.id}`) ?? 0) < 2000) return res.status(429).json({ error: 'Slow down a little.' });
   recent.set(`t:${req.user.id}:${req.params.id}`, Date.now());
-  const b = req.body || {};
-  const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
-  const payload = {
-    command: str(b.command, 40), action: str(b.action, 20) || null, applyTo: b.applyTo === 'author' ? 'author' : 'target',
-    roleId: typeof b.roleId === 'string' && /^\d{15,25}$/.test(b.roleId) ? b.roleId : null, duration: str(b.duration, 10) || null,
-    respondType: ['reaction', 'message'].includes(b.respondType) ? b.respondType : null, respond: str(b.respond, 500),
-    inReply: typeof b.inReply === 'boolean' ? b.inReply : null,
-    deleteAfter: Number.isInteger(b.deleteAfter) ? b.deleteAfter : null,
-    deletePrompt: typeof b.deletePrompt === 'boolean' ? b.deletePrompt : null,
-    deletePromptAfter: Number.isInteger(b.deletePromptAfter) ? b.deletePromptAfter : null,
-  };
-  const r = await runJob(req.params.id, req.user.id, 'trigger', 'save', payload);
+  const yaml = req.body?.yaml;
+  if (typeof yaml !== 'string') return res.status(400).json({ error: 'Send the YAML as text.' });
+  if (Buffer.byteLength(yaml) > MAX_YAML_BYTES) return res.status(400).json({ error: `The YAML is too large (max ${MAX_YAML_BYTES / 1024} KB).` });
+  const r = await runJob(req.params.id, req.user.id, 'trigger', 'save', { yaml });
+  if (r.status === 200 && !r.data.errors) r.data.errors = parseTriggers(yaml).errors; // a bot that didn't send its findings: use ours
   res.status(r.status).json(r.data);
 }));
-app.delete('/api/guilds/:id/triggers/:name', authed, adminOnly, triggerGate, wrap(async (req, res) => {
-  if (!/^[a-zA-Z]{1,40}$/.test(req.params.name)) return res.status(400).json({ error: 'Bad trigger name.' });
-  const r = await runJob(req.params.id, req.user.id, 'trigger', 'delete', { name: req.params.name });
-  res.status(r.status).json(r.data);
+app.get('/api/guilds/:id/triggers/errors', authed, adminOnly, triggerGate, wrap(async (req, res) => {
+  const rows = await TriggerError.find(errorFilter(req)).sort({ at: -1 }).limit(50).lean();
+  res.json({ errors: rows.map(errorRow) });
+}));
+app.delete('/api/guilds/:id/triggers/errors', authed, adminOnly, triggerGate, wrap(async (req, res) => {
+  const out = await TriggerError.deleteMany(errorFilter(req));
+  res.json({ ok: true, cleared: out.deletedCount ?? 0 });
 }));
 
 // ---- !emoji access (beta): who can use !emoji, Administrator only ----

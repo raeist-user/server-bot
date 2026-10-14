@@ -14,7 +14,7 @@ const FEATURES = [
   { key: 'emoji', name: 'Emoji', forms: ['!emoji', '/emoji'], group: 'general', channel: true, prefix: ['emoji'], slash: ['emoji'], desc: 'Choose who can add emoji to the server with !emoji.' },
   { key: 'snipe', name: 'Snipe', forms: ['!snipe', '/snipe'], group: 'general', channel: false, prefix: ['snipe'], slash: ['snipe'], desc: 'Bring back the most recently deleted message in one channel.' },
   { key: 'help', name: 'Help', forms: ['!help'], group: 'general', channel: true, prefix: ['help'], desc: 'The command list.' },
-  { key: 'trigger', name: 'Triggers', forms: ['/trigger', '/untrigger'], group: 'general', channel: true, slash: ['trigger', 'untrigger'], desc: 'Your own !commands (role, kick, ban, mute).' },
+  { key: 'trigger', name: 'Triggers', forms: ['/triggers'], group: 'general', channel: true, slash: ['triggers'], desc: 'Your own !commands and message triggers, written in YAML on the website (role, kick, ban, mute, reactions, replies).' },
   { key: 'geoguess', name: 'Geography Games', forms: ['!guesscountry', '!gc', '!guessstate', '!gs', '!guesscontinent', '!gcont', '/guessgeo'], group: 'games', channel: false, announce: true, prefix: ['guesscountry', 'gc', 'guessstate', 'gs', 'guesscontinent', 'gcont', 'guessgeo', 'gg', 'g'], slash: ['guessgeo'], desc: 'Members guess countries, states and continents in one channel.' },
   { key: 'wordstory', name: 'Word Story', forms: ['/wordstory'], group: 'games', channel: false, announce: true, slash: ['wordstory'], desc: 'Members write a story one word at a time.' },
   { key: 'debate', name: 'Debate', forms: ['/debate', '!auth', '!debate close'], group: 'games', channel: false, announce: true, prefix: ['auth', 'debate'], slash: ['debate'], desc: 'Posts debate topics with a thread each, source-checks arguments, then concludes and ranks the top 3.' },
@@ -27,7 +27,7 @@ const FEATURES = [
 
 const BY_KEY = Object.fromEntries(FEATURES.map((f) => [f.key, f]));
 const PREFIX_KEY = {}; // "q" -> "quote", "gc" -> "geoguess" ...
-const SLASH_KEY = {}; // "untrigger" -> "trigger"
+const SLASH_KEY = {}; // "triggers" -> "trigger"
 for (const f of FEATURES) {
   (f.prefix ?? []).forEach((n) => { PREFIX_KEY[n] = f.key; });
   (f.slash ?? []).forEach((n) => { SLASH_KEY[n] = f.key; });
